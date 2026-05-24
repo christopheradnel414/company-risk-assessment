@@ -36,17 +36,10 @@ class BaseSearchModule(ABC):
     # ── Optional configuration ─────────────────────────────────────────────────
 
     jurisdictions: ClassVar[Optional[List[str]]] = None
-    """ISO 3166-1 alpha-2 codes this module applies to.  None = all jurisdictions."""
 
     output_schema: ClassVar[Optional[dict]] = None
-    """JSON Schema dict used for LLM guidance and output validation. None = free-form."""
 
     skip_llm_parsing: ClassVar[bool] = False
-    """
-    When True, raw_data from fetch() is used directly as the structured output —
-    no LLM call is made. Set this on modules whose fetch() already returns data
-    that conforms to output_schema (e.g. typed API wrappers that do their own mapping).
-    """
 
     system_prompt: ClassVar[str] = (
         "You are a company research analyst. "

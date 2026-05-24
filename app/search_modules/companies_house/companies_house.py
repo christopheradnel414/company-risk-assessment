@@ -40,17 +40,7 @@ class CompaniesHouseModule(BaseSearchModule):
                 company_number = context.registration_number
 
                 if not company_number:
-                    search_resp = await client.get(
-                        f"{self._BASE_URL}/search/companies",
-                        params={"q": context.company_name, "items_per_page": 1},
-                    )
-                    search_resp.raise_for_status()
-                    items = search_resp.json().get("items", [])
-                    if not items:
-                        return SearchModuleResult(
-                            error=f"No company found in Companies House with name: {context.company_name}"
-                        )
-                    company_number = items[0]["company_number"]
+                    return SearchModuleResult(error="Company registration number is required")
 
                 profile_resp, officers_resp, filings_resp, psc_resp = await asyncio.gather(
                     client.get(f"{self._BASE_URL}/company/{company_number}"),

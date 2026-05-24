@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from app.models.request import AssessmentRequest
 from app.models.response import (
     AssessmentResult,
+    CandidateCompany,
     JobResponse,
     JobStatus,
     ModuleStatus,
@@ -25,6 +26,7 @@ class _Job:
         self.completed_at: Optional[datetime] = None
         self.module_statuses: Dict[str, SearchModuleProgress] = {}
         self.result: Optional[AssessmentResult] = None
+        self.candidates: Optional[List[CandidateCompany]] = None
 
     def to_response(self) -> JobResponse:
         return JobResponse(
@@ -34,6 +36,7 @@ class _Job:
             updated_at=self.updated_at,
             completed_at=self.completed_at,
             progress=list(self.module_statuses.values()),
+            candidates=self.candidates,
             result=self.result,
         )
 
@@ -108,6 +111,14 @@ class JobManager:
                 now = datetime.now(timezone.utc)
                 job.updated_at = now
                 job.completed_at = now
+
+    async def set_job_ambiguous(self, job_id: str, candidates: List[CandidateCompany]) -> None:
+        async with self._lock:
+            job = self._jobs.get(job_id)
+            if job:
+                job.status = JobStatus.AMBIGUOUS
+                job.candidates = candidates
+                job.updated_at = datetime.now(timezone.utc)
 
     async def fail_job(self, job_id: str, error: str) -> None:
         async with self._lock:

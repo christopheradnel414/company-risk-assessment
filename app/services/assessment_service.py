@@ -8,8 +8,10 @@ from app.config import get_settings
 from app.models.context import SearchContext
 from app.models.request import AssessmentRequest
 from app.models.response import AssessmentResult, ModuleStatus, RiskSummary, SearchResult
+from app.registry_modules.base import BaseRegistryModule
+from app.registry_modules.modules import get_registry_modules
 from app.search_modules.base import BaseSearchModule
-from app.search_modules.registry import get_all_modules
+from app.search_modules.modules import get_all_modules
 from app.services.job_manager import JobManager
 from app.services.llm_service import LLMService
 
@@ -132,6 +134,33 @@ class AssessmentService:
                 error=error_msg,
             )
 
+    # ── Registry disambiguation ────────────────────────────────────────────────
+
+    async def _disambiguate(
+        self,
+        registry_modules: list[BaseRegistryModule],
+        context: SearchContext,
+    ) -> list:
+        """
+        Run all registry modules in parallel and merge candidates.
+        Deduplicates by registration_number. Returns empty list on total failure.
+        """
+        results = await asyncio.gather(
+            *[m.search_companies(context) for m in registry_modules],
+            return_exceptions=True,
+        )
+        seen: set[str] = set()
+        candidates = []
+        for item in results:
+            if isinstance(item, Exception):
+                logger.warning("Registry module error during disambiguation: %s", item)
+                continue
+            for c in item:
+                if c.registration_number not in seen:
+                    seen.add(c.registration_number)
+                    candidates.append(c)
+        return candidates
+
     # ── Full assessment orchestration ──────────────────────────────────────────
 
     async def run_assessment(self, job_id: str, request: AssessmentRequest) -> None:
@@ -139,6 +168,47 @@ class AssessmentService:
             await self._job_manager.set_job_running(job_id)
 
             jurisdiction = request.jurisdiction
+            context = SearchContext(
+                company_name=request.company_name,
+                registration_number=request.registration_number,
+                jurisdiction=jurisdiction,
+            )
+
+            # ── Phase 1: registry disambiguation ──────────────────────────────
+            registry_modules = get_registry_modules(jurisdiction)
+
+            if registry_modules:
+                candidates = await self._disambiguate(registry_modules, context)
+
+                if len(candidates) == 0:
+                    await self._job_manager.fail_job(
+                        job_id,
+                        f"No company found in the registry for "
+                        f"name='{request.company_name}', "
+                        f"number='{request.registration_number}'.",
+                    )
+                    return
+
+                if len(candidates) > 1:
+                    logger.info(
+                        "Job %s — ambiguous: %d candidates found", job_id, len(candidates)
+                    )
+                    await self._job_manager.set_job_ambiguous(job_id, candidates)
+                    return
+
+                # Exactly 1 match — enrich context with canonical data
+                match = candidates[0]
+                logger.info(
+                    "Job %s — resolved to '%s' (%s)",
+                    job_id, match.company_name, match.registration_number,
+                )
+                context = SearchContext(
+                    company_name=match.company_name,
+                    registration_number=match.registration_number,
+                    jurisdiction=match.jurisdiction,
+                )
+
+            # ── Phase 2: search modules ────────────────────────────────────────
             modules = get_all_modules(jurisdiction)
 
             for module in modules:
@@ -146,21 +216,15 @@ class AssessmentService:
                     job_id, module.module_id, module.module_name, ModuleStatus.PENDING
                 )
 
-            context = SearchContext(
-                company_name=request.company_name,
-                registration_number=request.registration_number,
-                jurisdiction=jurisdiction,
-            )
-
             all_results = await self._gather_modules(job_id, modules, context)
 
+            #TODO: This is commented out for development of the modules first to save API cost
             # risk_summary = await self._llm_service.synthesize_results(
             #     company_name=request.company_name,
             #     registration_number=request.registration_number,
             #     jurisdiction=jurisdiction,
             #     search_results=all_results,
             # )
-
             risk_summary=RiskSummary(
                 overall_risk_level='unknown',
                 negative_indicators=[],

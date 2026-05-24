@@ -128,7 +128,7 @@ async def list_modules():
     Returns metadata for every registered search module including
     which jurisdictions each module applies to.
     """
-    from app.search_modules.registry import ALL_MODULE_CLASSES
+    from app.search_modules.modules import ALL_SEARCH_MODULES
 
     return [
         {
@@ -137,5 +137,5 @@ async def list_modules():
             "description": cls.description,
             "jurisdictions": cls.jurisdictions if cls.jurisdictions else "all",
         }
-        for cls in ALL_MODULE_CLASSES
+        for cls in ALL_SEARCH_MODULES
     ]

@@ -15,8 +15,18 @@ class ModuleStatus(str, Enum):
 class JobStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
+    AMBIGUOUS = "ambiguous"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class CandidateCompany(BaseModel):
+    """A company match returned during registry disambiguation."""
+    company_name: str
+    registration_number: str
+    jurisdiction: str
+    company_status: Optional[str] = Field(None, description="e.g. active, dissolved")
+    source: str = Field(description="Registry that returned this match")
 
 
 # ── Per-module progress (returned in job status) ───────────────────────────────
@@ -74,6 +84,11 @@ class JobResponse(BaseModel):
     completed_at: Optional[datetime] = None
     progress: List[SearchModuleProgress] = Field(
         description="Status of each individual search module"
+    )
+    candidates: Optional[List[CandidateCompany]] = Field(
+        None,
+        description="Ambiguous registry matches — populated when status is 'ambiguous'. "
+                    "Resubmit with registration_number to disambiguate.",
     )
     result: Optional[AssessmentResult] = Field(
         None, description="Final assessment result — populated once status is 'completed'"
