@@ -176,6 +176,7 @@ class AssessmentService:
 
             # ── Phase 1: registry disambiguation ──────────────────────────────
             registry_modules = get_registry_modules(jurisdiction)
+            registry_warnings: list[str] = []
 
             if registry_modules:
                 candidates = await self._disambiguate(registry_modules, context)
@@ -202,6 +203,7 @@ class AssessmentService:
                     "Job %s — resolved to '%s' (%s)",
                     job_id, match.company_name, match.registration_number,
                 )
+                registry_warnings = match.warnings or []
                 context = SearchContext(
                     company_name=match.company_name,
                     registration_number=match.registration_number,
@@ -238,7 +240,8 @@ class AssessmentService:
                     registration_number=request.registration_number,
                     jurisdiction=jurisdiction,
                     search_results=all_results,
-                    risk_summary=risk_summary
+                    risk_summary=risk_summary,
+                    warnings=registry_warnings,
                 ),
             )
 

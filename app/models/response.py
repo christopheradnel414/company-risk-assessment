@@ -27,6 +27,7 @@ class CandidateCompany(BaseModel):
     jurisdiction: str
     company_status: Optional[str] = Field(None, description="e.g. active, dissolved")
     source: str = Field(description="Registry that returned this match")
+    warnings: List[str]
 
 
 # ── Per-module progress (returned in job status) ───────────────────────────────
@@ -72,6 +73,7 @@ class AssessmentResult(BaseModel):
     jurisdiction: str
     search_results: List[SearchResult]
     risk_summary: RiskSummary
+    warnings: List[str]
 
 
 # ── Job API responses ─────────────────────────────────────────────────────────
