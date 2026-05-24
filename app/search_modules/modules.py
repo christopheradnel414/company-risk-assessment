@@ -1,10 +1,12 @@
 from typing import List, Type
 
+from app.search_modules.adverse_media.adverse_media import AdverseMediaModule
 from app.search_modules.base import BaseSearchModule
 from app.search_modules.companies_house.companies_house import CompaniesHouseModule
 
 ALL_SEARCH_MODULES: List[Type[BaseSearchModule]] = [
-    CompaniesHouseModule, # GB Only
+    CompaniesHouseModule,  # GB only
+    AdverseMediaModule,    # global
 ]
 
 

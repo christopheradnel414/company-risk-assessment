@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "adverse_media",
+  "type": "object",
+  "required": ["adverse_media_found", "summary", "hits"],
+  "additionalProperties": false,
+  "properties": {
+    "adverse_media_found": {
+      "type": "boolean",
+      "description": "True if any credible adverse media, scam reports, or fraud allegations were found"
+    },
+    "summary": {
+      "type": "string",
+      "description": "1-3 sentence summary of findings, or confirmation that no adverse media was found"
+    },
+    "hits": {
+      "type": "array",
+      "description": "Individual adverse media items found",
+      "items": {
+        "type": "object",
+        "required": ["title", "url", "snippet", "category"],
+        "additionalProperties": false,
+        "properties": {
+          "title":   { "type": "string" },
+          "url":     { "type": "string" },
+          "snippet": { "type": "string", "description": "Relevant excerpt or context from the source" },
+          "category": {
+            "type": "string",
+            "enum": ["scam", "fraud", "legal_action", "regulatory", "negative_news", "complaint", "other"]
+          }
+        }
+      }
+    },
+    "risk_indicators": {
+      "type": "array",
+      "description": "Specific risk signals found, e.g. 'FCA enforcement action 2023', 'multiple Trustpilot complaints'",
+      "items": { "type": "string" }
+    }
+  }
+}
