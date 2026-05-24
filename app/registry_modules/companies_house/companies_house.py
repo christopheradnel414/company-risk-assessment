@@ -53,7 +53,7 @@ class CompaniesHouseRegistryModule(BaseRegistryModule):
         data = resp.json()
         canonical_name: str = data.get("company_name", "")
 
-        warnings: Optional[List[str]] = None
+        warnings = []
         if submitted_name and _normalise_name(submitted_name) != _normalise_name(canonical_name):
             warnings = [
                 f"Submitted name '{submitted_name}' does not match registered name '{canonical_name}'. "
