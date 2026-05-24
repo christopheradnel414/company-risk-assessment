@@ -36,8 +36,12 @@ class SearchResult(BaseModel):
     module_id: str
     module_name: str
     status: ModuleStatus
-    data: Optional[Any] = Field(None, description="Structured data extracted by the LLM from raw source data")
+    data: Optional[Any] = Field(None, description="Structured data from the module (LLM-parsed or direct)")
     error: Optional[str] = Field(None, description="Error message if the module failed")
+    schema_errors: Optional[List[str]] = Field(
+        None,
+        description="Output schema validation errors, if any. Module still completes successfully.",
+    )
 
 
 # ── Risk summary produced by the LLM synthesis step ──────────────────────────
@@ -46,16 +50,8 @@ class RiskSummary(BaseModel):
     overall_risk_level: Literal["high", "medium", "low", "unknown"] = Field(
         description="Aggregated risk level across all search findings"
     )
-    risk_score: int = Field(
-        ge=0, le=100,
-        description="Numeric risk score: 0 = no risk, 100 = maximum risk",
-    )
-    key_findings: List[str] = Field(description="Most significant findings across all modules")
-    red_flags: List[str] = Field(description="Specific concerning indicators identified")
+    negative_indicators: List[str] = Field(description="Specific concerning indicators identified")
     positive_indicators: List[str] = Field(description="Factors that reduce risk or indicate legitimacy")
-    recommendation: Literal["proceed", "caution", "avoid", "insufficient_data"] = Field(
-        description="Recommended action based on findings"
-    )
 
 
 # ── Final assessment result ───────────────────────────────────────────────────
@@ -66,7 +62,6 @@ class AssessmentResult(BaseModel):
     jurisdiction: str
     search_results: List[SearchResult]
     risk_summary: RiskSummary
-    search_conclusion: str = Field(description="Narrative summary of all findings and risk assessment")
 
 
 # ── Job API responses ─────────────────────────────────────────────────────────

@@ -21,9 +21,10 @@ class BaseSearchModule(ABC):
     1. Create a new file in `app/search_modules/`
     2. Subclass `BaseSearchModule`
     3. Set `module_id`, `module_name`, `description` and optionally `jurisdictions`
-    4. Define `output_schema` (JSON Schema dict) and `system_prompt` for LLM parsing
-    5. Implement `fetch(context)`
-    6. Register the class in `app/search_modules/registry.py`
+    4. Define `output_schema` (JSON Schema dict) for validation and LLM guidance
+    5. If fetch() already returns data matching output_schema, set skip_llm_parsing=True
+    6. Implement `fetch(context)`
+    7. Register the class in `app/search_modules/registry.py`
     """
 
     # ── Required class-level attributes ───────────────────────────────────────
@@ -38,7 +39,14 @@ class BaseSearchModule(ABC):
     """ISO 3166-1 alpha-2 codes this module applies to.  None = all jurisdictions."""
 
     output_schema: ClassVar[Optional[dict]] = None
-    """JSON Schema dict for the LLM to produce.  None = free-form extraction."""
+    """JSON Schema dict used for LLM guidance and output validation. None = free-form."""
+
+    skip_llm_parsing: ClassVar[bool] = False
+    """
+    When True, raw_data from fetch() is used directly as the structured output —
+    no LLM call is made. Set this on modules whose fetch() already returns data
+    that conforms to output_schema (e.g. typed API wrappers that do their own mapping).
+    """
 
     system_prompt: ClassVar[str] = (
         "You are a company research analyst. "

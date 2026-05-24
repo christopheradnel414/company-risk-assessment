@@ -96,7 +96,7 @@ class LLMService:
     ) -> tuple[RiskSummary, str]:
         """
         Generate an overall risk assessment from all completed module results.
-        Returns (RiskSummary, narrative_conclusion).
+        Returns RiskSummary.
         """
         results_payload = [
             {
@@ -116,15 +116,8 @@ class LLMService:
 
         output_schema = {
             "overall_risk_level": "high | medium | low | unknown",
-            "risk_score": "integer 0–100 (0 = no risk, 100 = maximum risk)",
-            "key_findings": ["concise list of the most significant findings"],
-            "red_flags": ["specific concerning indicators with brief context"],
+            "nagative_indicators": ["specific concerning indicators with brief context"],
             "positive_indicators": ["factors that reduce risk or confirm legitimacy"],
-            "recommendation": "proceed | caution | avoid | insufficient_data",
-            "narrative_conclusion": (
-                "2–4 paragraph narrative summarising the overall risk profile, "
-                "key evidence, and reasoning behind the recommendation."
-            ),
         }
 
         user_prompt = (
@@ -137,7 +130,7 @@ class LLMService:
             f"Return a JSON object matching this structure:\n"
             f"{json.dumps(output_schema, indent=2)}\n\n"
             f"If critical data is missing or modules failed, reflect this uncertainty "
-            f"in your risk score and recommendation."
+            f"in your and risk level."
         )
 
         try:
@@ -145,23 +138,16 @@ class LLMService:
 
             risk_summary = RiskSummary(
                 overall_risk_level=result.get("overall_risk_level", "unknown"),
-                risk_score=int(result.get("risk_score", 50)),
-                key_findings=result.get("key_findings", []),
-                red_flags=result.get("red_flags", []),
-                positive_indicators=result.get("positive_indicators", []),
-                recommendation=result.get("recommendation", "insufficient_data"),
+                negative_indicators=result.get("negative_indicators", []),
+                positive_indicators=result.get("positive_indicators", [])
             )
-            conclusion = result.get("narrative_conclusion", "Unable to generate conclusion.")
-            return risk_summary, conclusion
+            return risk_summary
 
         except Exception as exc:
             logger.error("LLM synthesis failed: %s", exc)
             fallback = RiskSummary(
                 overall_risk_level="unknown",
-                risk_score=50,
-                key_findings=["Risk synthesis could not be completed due to an LLM error."],
-                red_flags=[],
-                positive_indicators=[],
-                recommendation="insufficient_data",
+                negative_indicators=[],
+                positive_indicators=[]
             )
             return fallback, f"Risk synthesis failed: {exc}"
