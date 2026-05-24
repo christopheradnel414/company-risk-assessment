@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -24,6 +25,21 @@ class LLMService:
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
+    @staticmethod
+    def _parse_llm_json(content: str) -> dict:
+        content = content.strip()
+        content = re.sub(r"^```(?:json)?\s*\n?", "", content)
+        content = re.sub(r"\n?```\s*$", "", content).strip()
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            def _escape_string(m: re.Match) -> str:
+                inner = m.group(0)[1:-1]
+                inner = inner.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+                return f'"{inner}"'
+            fixed = re.sub(r'"(?:[^"\\]|\\.)*"', _escape_string, content, flags=re.DOTALL)
+            return json.loads(fixed)
+
     async def _chat(self, system_prompt: str, user_prompt: str) -> dict:
         """Call the LLM and return parsed JSON."""
         response = await self._client.chat.completions.create(
@@ -34,7 +50,7 @@ class LLMService:
             ],
             response_format={"type": "json_object"},
         )
-        return json.loads(response.choices[0].message.content)
+        return self._parse_llm_json(response.choices[0].message.content)
 
     # ── Public interface ───────────────────────────────────────────────────────
 

@@ -14,11 +14,11 @@ from app.search_modules.open_sanctions import OpenSanctionsModule
 
 ALL_MODULE_CLASSES: List[Type[BaseSearchModule]] = [
     CompaniesHouseModule,   # GB only
-    OpenCorporatesModule,   # global
-    NewsSearchModule,       # global
-    AdverseMediaModule,     # global
-    ICIJSearchModule,       # global
-    OpenSanctionsModule,    # global
+    # OpenCorporatesModule,   # global
+    # NewsSearchModule,       # global
+    # AdverseMediaModule,     # global
+    # ICIJSearchModule,       # global
+    # OpenSanctionsModule,    # global
 ]
 
 
