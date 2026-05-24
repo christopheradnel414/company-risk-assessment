@@ -57,7 +57,6 @@ class CompaniesHouseRegistryModule(BaseRegistryModule):
         if submitted_name and _normalise_name(submitted_name) != _normalise_name(canonical_name):
             warnings = [
                 f"Submitted name '{submitted_name}' does not match registered name '{canonical_name}'. "
-                "Proceeding with the registered name."
             ]
             logger.warning(
                 "Name mismatch for %s: submitted='%s', registered='%s'",

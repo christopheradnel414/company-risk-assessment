@@ -27,20 +27,12 @@ class BaseSearchModule(ABC):
     7. Register the class in `app/search_modules/registry.py`
     """
 
-    # ── Required class-level attributes ───────────────────────────────────────
-
     module_id: ClassVar[str]
     module_name: ClassVar[str]
     description: ClassVar[str]
-
-    # ── Optional configuration ─────────────────────────────────────────────────
-
     jurisdictions: ClassVar[Optional[List[str]]] = None
-
     output_schema: ClassVar[Optional[dict]] = None
-
     skip_llm_parsing: ClassVar[bool] = False
-
     system_prompt: ClassVar[str] = (
         "You are a company research analyst. "
         "Extract and structure all relevant information from the provided raw data as JSON."

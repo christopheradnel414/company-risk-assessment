@@ -236,8 +236,8 @@ class AssessmentService:
             await self._job_manager.complete_job(
                 job_id,
                 AssessmentResult(
-                    company_name=request.company_name,
-                    registration_number=request.registration_number,
+                    company_name=match.company_name,
+                    registration_number=match.registration_number,
                     jurisdiction=jurisdiction,
                     search_results=all_results,
                     risk_summary=risk_summary,

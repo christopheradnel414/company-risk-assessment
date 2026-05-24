@@ -17,14 +17,12 @@ class CompaniesHouseModule(BaseSearchModule):
         "officers, and persons with significant control (PSC)."
     )
     jurisdictions = ["GB"]
-
-    _BASE_URL = "https://api.company-information.service.gov.uk"
-
     skip_llm_parsing = True
-
     output_schema = json.loads(
         (Path(__file__).with_suffix(".schema.json")).read_text()
     )
+
+    _BASE_URL = "https://api.company-information.service.gov.uk"
 
     async def fetch(self, context: SearchContext) -> SearchModuleResult:
         settings = get_settings()
