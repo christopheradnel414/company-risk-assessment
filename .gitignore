@@ -1,0 +1,5 @@
+.env
+.venv
+.claude
+manual_test
+*__pycache__
