@@ -23,17 +23,10 @@ class AssessmentService:
         self._job_manager = job_manager
         self._llm_service = llm_service
 
-    # ── Schema validation ──────────────────────────────────────────────────────
-
     @staticmethod
-    def _validate_output(data: Any, schema: Optional[dict]) -> list[str]:
-        """Validate data against a JSON Schema; returns a list of error messages."""
-        if not schema or not isinstance(data, dict):
-            return []
+    def _validate_output(data: Any, schema: dict) -> list[str]:
         validator = jsonschema.Draft7Validator(schema)
         return [e.message for e in sorted(validator.iter_errors(data), key=str)]
-
-    # ── Single-module execution ────────────────────────────────────────────────
 
     async def _fail_module(
         self, job_id: str, module: BaseSearchModule, error_msg: str
@@ -73,6 +66,8 @@ class AssessmentService:
                 parsed = raw_result.raw_data if isinstance(raw_result.raw_data, dict) else {}
             else:
                 parsed = await self._llm_service.parse_module_result(module, raw_result)
+                if "error" in parsed:
+                    return await self._fail_module(job_id, module, parsed["error"])
 
             schema_errors = self._validate_output(parsed, module.output_schema)
             if schema_errors:
@@ -99,8 +94,6 @@ class AssessmentService:
             logger.error("Unexpected error in module '%s' for job %s: %s", module.module_id, job_id, exc)
             return await self._fail_module(job_id, module, str(exc))
 
-    # ── Registry disambiguation ────────────────────────────────────────────────
-
     async def _disambiguate(
         self,
         registry_modules: list[BaseRegistryModule],
@@ -126,8 +119,6 @@ class AssessmentService:
                     candidates.append(c)
         return candidates
 
-    # ── Full assessment orchestration ──────────────────────────────────────────
-
     async def run_assessment(self, job_id: str, request: AssessmentRequest) -> None:
         try:
             await self._job_manager.set_job_running(job_id)
@@ -139,7 +130,7 @@ class AssessmentService:
                 jurisdiction=jurisdiction,
             )
 
-            # ── Phase 1: registry disambiguation ──────────────────────────────
+            # Phase 1: registry disambiguation
             registry_modules = get_registry_modules(jurisdiction)
             registry_warnings: list[str] = []
 
@@ -178,7 +169,7 @@ class AssessmentService:
                 jurisdiction=match.jurisdiction,
             )
 
-            # ── Phase 2: search modules ────────────────────────────────────────
+            # Phase 2: search modules
             modules = get_all_modules(jurisdiction)
 
             for module in modules:

@@ -52,7 +52,6 @@ class AdverseMediaModule(BaseSearchModule):
         )
 
         max_attempts = 1 + _LLM_RETRY
-        last_parsed: dict = {}
 
         for attempt in range(1, max_attempts + 1):
             try:
@@ -67,10 +66,10 @@ class AdverseMediaModule(BaseSearchModule):
                     max_tokens=4096,
                 )
                 content = response.choices[0].message.content or "{}"
-                last_parsed = _parse_json(content)
-                errors = _validate(last_parsed, _SCHEMA)
+                parsed = _parse_json(content)
+                errors = _validate(parsed, _SCHEMA)
                 if not errors:
-                    return SearchModuleResult(raw_data=last_parsed)
+                    return SearchModuleResult(raw_data=parsed)
                 logger.warning(
                     "adverse_media schema validation failed (attempt %d/%d): %s",
                     attempt, max_attempts, errors,
@@ -84,7 +83,7 @@ class AdverseMediaModule(BaseSearchModule):
                 logger.error("adverse_media search failed for '%s': %s", context.company_name, exc)
                 return SearchModuleResult(error=str(exc))
 
-        return SearchModuleResult(raw_data=last_parsed)
+        return SearchModuleResult(error="adverse_media failed to produce a valid response after all retries")
 
 
 def _parse_json(content: str) -> dict:
