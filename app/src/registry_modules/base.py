@@ -34,8 +34,8 @@ class BaseRegistryModule(ABC):
         Search the registry for companies matching the context.
 
         Return a list of candidates — typically 1 when a registration_number is
-        provided, or 0–many when searching by name only. Must not raise; return
-        an empty list on failure.
+        provided, or 0–many when searching by name only. May raise on error;
+        callers use asyncio.gather(return_exceptions=True) to capture failures.
         """
         ...
 

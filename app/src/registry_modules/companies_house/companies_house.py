@@ -27,18 +27,14 @@ class CompaniesHouseRegistryModule(BaseRegistryModule):
         settings = get_settings()
 
         auth = (settings.companies_house_api_key, "")
-        try:
-            async with httpx.AsyncClient(auth=auth, timeout=15.0) as client:
-                if context.registration_number:
-                    return await self._fetch_by_number(
-                        client, context.registration_number, context.company_name
-                    )
-                if context.company_name:
-                    return await self._search_by_name(client, context.company_name)
-            return []
-        except Exception as exc:
-            logger.error("Companies House registry search failed: %s", exc)
-            return []
+        async with httpx.AsyncClient(auth=auth, timeout=15.0) as client:
+            if context.registration_number:
+                return await self._fetch_by_number(
+                    client, context.registration_number, context.company_name
+                )
+            if context.company_name:
+                return await self._search_by_name(client, context.company_name)
+        return []
 
     async def _fetch_by_number(
         self,

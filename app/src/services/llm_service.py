@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Optional
 
+import openai
 from openai import AsyncOpenAI
 
 from app.src.config import get_settings
@@ -10,7 +11,7 @@ from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 
 logger = logging.getLogger(__name__)
 
-_LLM_RETRY = 2
+_LLM_RETRY = 3
 
 class LLMService:
     """Wraps OpenRouter API calls for per-module parsing and final synthesis."""
@@ -47,7 +48,12 @@ class LLMService:
                         f"LLM returned empty content (finish_reason={response.choices[0].finish_reason})"
                     )
                 return json.loads(content)
-            except (ValueError, json.JSONDecodeError) as exc:
+            except (
+                ValueError,
+                json.JSONDecodeError,
+                openai.APIConnectionError,
+                openai.APITimeoutError,
+            ) as exc:
                 last_exc = exc
                 logger.warning("_chat attempt %d/%d failed: %s", attempt, _LLM_RETRY + 1, exc)
         raise last_exc

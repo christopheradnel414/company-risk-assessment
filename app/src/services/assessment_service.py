@@ -98,10 +98,10 @@ class AssessmentService:
         self,
         registry_modules: list[BaseRegistryModule],
         context: SearchContext,
-    ) -> list:
+    ) -> tuple[list, list[str]]:
         """
         Run all registry modules in parallel and merge candidates.
-        Deduplicates by registration_number. Returns empty list on total failure.
+        Deduplicates by registration_number. Returns (candidates, errors).
         """
         results = await asyncio.gather(
             *[m.search_companies(context) for m in registry_modules],
@@ -109,15 +109,17 @@ class AssessmentService:
         )
         seen: set[str] = set()
         candidates = []
+        errors = []
         for item in results:
             if isinstance(item, Exception):
                 logger.warning("Registry module error during disambiguation: %s", item)
+                errors.append(str(item))
                 continue
             for c in item:
                 if c.registration_number not in seen:
                     seen.add(c.registration_number)
                     candidates.append(c)
-        return candidates
+        return candidates, errors
 
     async def run_assessment(self, job_id: str, request: AssessmentRequest) -> None:
         try:
@@ -141,15 +143,21 @@ class AssessmentService:
                 )
                 return
 
-            candidates = await self._disambiguate(registry_modules, context)
+            candidates, registry_errors = await self._disambiguate(registry_modules, context)
 
             if len(candidates) == 0:
-                await self._job_manager.fail_job(
-                    job_id,
-                    f"No company found in the registry for "
-                    f"name='{request.company_name}', "
-                    f"number='{request.registration_number}'.",
-                )
+                if registry_errors:
+                    await self._job_manager.fail_job(
+                        job_id,
+                        f"Registry search failed: {'; '.join(registry_errors)}",
+                    )
+                else:
+                    await self._job_manager.fail_job(
+                        job_id,
+                        f"No company found in the registry for "
+                        f"name='{request.company_name}', "
+                        f"number='{request.registration_number}'.",
+                    )
                 return
 
             if len(candidates) > 1:
