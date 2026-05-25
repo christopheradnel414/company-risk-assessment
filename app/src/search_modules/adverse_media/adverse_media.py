@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 _SCHEMA = json.loads((Path(__file__).with_suffix(".schema.json")).read_text())
 _SCHEMA_STR = json.dumps(_SCHEMA, indent=2)
-_LLM_PARSE_RETRY = 2
+_LLM_RETRY = 2
 
 _SYSTEM_PROMPT = (
     "You are a company due diligence analyst specialising in adverse media screening. "
@@ -52,7 +52,7 @@ class AdverseMediaModule(BaseSearchModule):
             f"Return a JSON object strictly matching the schema in the system prompt."
         )
 
-        max_attempts = 1 + _LLM_PARSE_RETRY
+        max_attempts = 1 + _LLM_RETRY
         last_parsed: dict = {}
 
         for attempt in range(1, max_attempts + 1):

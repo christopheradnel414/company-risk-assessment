@@ -10,6 +10,7 @@ from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 
 logger = logging.getLogger(__name__)
 
+_LLM_RETRY = 2
 
 class LLMService:
     """Wraps OpenRouter API calls for per-module parsing and final synthesis."""
@@ -23,20 +24,33 @@ class LLMService:
         )
 
     async def _chat(
-        self, system_prompt: str, user_prompt: str, schema: dict = None, temperature: float = 0.0
+        self, system_prompt: str, user_prompt: str, schema: dict, temperature: float = 0.0
     ) -> dict:
+        if not schema:
+            raise ValueError("_chat requires a schema")
         response_format = {"type": "json_schema", "json_schema": {"name": "output", "schema": schema, "strict": True}}
-        
-        response = await self._client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            response_format=response_format,
-            temperature=temperature,
-        )
-        return json.loads(response.choices[0].message.content)
+        last_exc: Exception = RuntimeError("No attempts made")
+        for attempt in range(1, _LLM_RETRY + 2):
+            try:
+                response = await self._client.chat.completions.create(
+                    model=self._model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    response_format=response_format,
+                    temperature=temperature,
+                )
+                content = response.choices[0].message.content
+                if not content:
+                    raise ValueError(
+                        f"LLM returned empty content (finish_reason={response.choices[0].finish_reason})"
+                    )
+                return json.loads(content)
+            except (ValueError, json.JSONDecodeError) as exc:
+                last_exc = exc
+                logger.warning("_chat attempt %d/%d failed: %s", attempt, _LLM_RETRY + 1, exc)
+        raise last_exc
 
     async def parse_module_result(
         self,
