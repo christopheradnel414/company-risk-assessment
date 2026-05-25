@@ -4,12 +4,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.src.api.routes import jobs
+from app.src.api.routes import assessment, jobs
 from app.src.config import get_settings
 from app.src.services.assessment_service import AssessmentService
 from app.src.services.job_manager import JobManager
 from app.src.services.llm_service import LLMService
-from app.src.api.routes import assessment
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,7 +31,6 @@ async def lifespan(app: FastAPI):
     )
 
     app.state.job_manager = job_manager
-    app.state.llm_service = llm_service
     app.state.assessment_service = assessment_service
 
     yield
@@ -77,20 +75,17 @@ Results are available once `status` is `"completed"`.
 | Module | Coverage | Data Source |
 |--------|----------|-------------|
 | **Companies House** | 🇬🇧 GB only | api.company-information.service.gov.uk |
-| **OpenCorporates** | 🌍 Global | api.opencorporates.com |
-| **News & Media** | 🌍 Global | DuckDuckGo News |
-| **Adverse Media** | 🌍 Global | DuckDuckGo Web (scam/fraud/complaint queries) |
+| **Adverse Media** | 🌍 Global | OpenRouter web search tool |
 | **ICIJ Offshore Leaks** | 🌍 Global | offshoreleaks.icij.org |
-| **OpenSanctions** | 🌍 Global | api.opensanctions.org |
 
 ---
 
 ## Extending with New Modules
 
-1. Create a new file in `app/search_modules/`
+1. Create a new file in `app/src/search_modules/`
 2. Subclass `BaseSearchModule` and implement `fetch()`
 3. Set `jurisdictions = None` (global) or `["GB", "US"]` (specific)
-4. Add the class to `ALL_MODULE_CLASSES` in `app/search_modules/registry.py`
+4. Add the class to `ALL_SEARCH_MODULES` in `app/src/search_modules/modules.py`
 """,
     version="1.0.0",
     docs_url="/docs",

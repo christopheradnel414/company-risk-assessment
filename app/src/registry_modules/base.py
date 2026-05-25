@@ -21,7 +21,7 @@ class BaseRegistryModule(ABC):
     2. Subclass `BaseRegistryModule`
     3. Set `module_id`, `module_name`, and `jurisdictions`
     4. Implement `search_companies(context)` — return a list of `CandidateCompany`
-    5. Add the class to `ALL_REGISTRY_CLASSES` in `app/registry_modules/registry.py`
+    5. Add the class to `ALL_REGISTRY_CLASSES` in `app/src/registry_modules/modules.py`
     """
 
     module_id: ClassVar[str]

@@ -13,7 +13,6 @@ class Settings(BaseSettings):
 
     # Optional data source keys
     companies_house_api_key: str = ""
-    opencorporates_api_token: str = ""
 
     # Operational settings
     job_ttl_hours: int = 24

@@ -24,7 +24,7 @@ class BaseSearchModule(ABC):
     4. Define `output_schema` (JSON Schema dict) for validation and LLM guidance
     5. If fetch() already returns data matching output_schema, set skip_llm_parsing=True
     6. Implement `fetch(context)`
-    7. Register the class in `app/search_modules/registry.py`
+    7. Register the class in `app/src/search_modules/modules.py`
     """
 
     module_id: ClassVar[str]

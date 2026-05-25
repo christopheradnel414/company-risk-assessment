@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 _MAX_CANDIDATES = 10
 
+
 def _normalise_name(name: str) -> str:
     return name.lower().strip()
 
