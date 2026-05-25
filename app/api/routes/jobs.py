@@ -52,4 +52,4 @@ async def get_job(job_id: str, request: Request) -> JobResponse:
 )
 async def list_jobs(request: Request) -> list[JobResponse]:
     jobs = _job_manager(request).list_jobs()
-    return [job.to_response() for job in reversed(jobs)]
+    return [job.to_summary() for job in reversed(jobs)]

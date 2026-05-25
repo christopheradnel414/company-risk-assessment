@@ -128,28 +128,20 @@ class LLMService:
             f"and note the data gap in the summary."
         )
 
-        try:
-            result = await self._chat(
-                self._SYNTHESIS_SYSTEM_PROMPT,
-                user_prompt,
-                schema=self._SYNTHESIS_SCHEMA,
-            )
-            score = result["risk_score"]
-            if score < 30:
-                level = "low"
-            elif score < 60:
-                level = "medium"
-            else:
-                level = "high"
-            return RiskSummary(
-                overall_risk_level=level,
-                risk_score=score,
-                summary=result.get("summary", ""),
-            )
-        except Exception as exc:
-            logger.error("LLM synthesis failed: %s", exc)
-            return RiskSummary(
-                overall_risk_level="unknown",
-                risk_score=50,
-                summary=f"Risk synthesis failed: {exc}",
-            )
+        result = await self._chat(
+            self._SYNTHESIS_SYSTEM_PROMPT,
+            user_prompt,
+            schema=self._SYNTHESIS_SCHEMA,
+        )
+        score = result["risk_score"]
+        if score < 30:
+            level = "low"
+        elif score < 60:
+            level = "medium"
+        else:
+            level = "high"
+        return RiskSummary(
+            overall_risk_level=level,
+            risk_score=score,
+            summary=result.get("summary", ""),
+        )

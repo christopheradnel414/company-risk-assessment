@@ -204,6 +204,13 @@ class AssessmentService:
 
             all_results = await self._gather_modules(job_id, modules, context)
 
+            if all(r.status == ModuleStatus.FAILED for r in all_results):
+                failed_names = ", ".join(r.module_name for r in all_results)
+                await self._job_manager.fail_job(
+                    job_id, f"All search modules failed: {failed_names}"
+                )
+                return
+
             risk_summary = await self._llm_service.synthesize_results(
                 company_name=request.company_name,
                 registration_number=request.registration_number,

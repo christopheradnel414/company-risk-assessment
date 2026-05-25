@@ -95,6 +95,9 @@ class JobResponse(BaseModel):
     result: Optional[AssessmentResult] = Field(
         None, description="Final assessment result — populated once status is 'completed'"
     )
+    error: Optional[str] = Field(
+        None, description="Error message — populated when status is 'failed'"
+    )
 
 
 class CreateAssessmentResponse(BaseModel):

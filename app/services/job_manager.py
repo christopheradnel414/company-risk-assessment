@@ -27,6 +27,7 @@ class _Job:
         self.module_statuses: Dict[str, SearchModuleProgress] = {}
         self.result: Optional[AssessmentResult] = None
         self.candidates: Optional[List[CandidateCompany]] = None
+        self.error: Optional[str] = None
 
     def to_response(self) -> JobResponse:
         return JobResponse(
@@ -38,6 +39,21 @@ class _Job:
             progress=list(self.module_statuses.values()),
             candidates=self.candidates,
             result=self.result,
+            error=self.error,
+        )
+
+    def to_summary(self) -> JobResponse:
+        """Like to_response() but omits the full result payload — used for list endpoints."""
+        return JobResponse(
+            job_id=self.job_id,
+            status=self.status,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            completed_at=self.completed_at,
+            progress=list(self.module_statuses.values()),
+            candidates=self.candidates,
+            result=None,
+            error=self.error,
         )
 
 
@@ -125,6 +141,7 @@ class JobManager:
             job = self._jobs.get(job_id)
             if job:
                 job.status = JobStatus.FAILED
+                job.error = error
                 now = datetime.now(timezone.utc)
                 job.updated_at = now
                 job.completed_at = now
