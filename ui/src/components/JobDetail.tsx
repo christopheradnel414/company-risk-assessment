@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { AssessmentResult, CandidateCompany, JobResponse, SearchContext, SearchResult } from '../types'
+import { ModuleView } from './ModuleViews'
 
 interface Props {
   job: JobResponse
@@ -12,6 +13,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function ModuleResultCard({ result }: { result: SearchResult }) {
   const [open, setOpen] = useState(true)
+  const [rawOpen, setRawOpen] = useState(false)
 
   return (
     <div className="module-result">
@@ -26,7 +28,17 @@ function ModuleResultCard({ result }: { result: SearchResult }) {
           {result.error ? (
             <div className="module-error-box">{result.error}</div>
           ) : result.data != null ? (
-            <pre className="json-viewer">{JSON.stringify(result.data, null, 2)}</pre>
+            <>
+              <ModuleView moduleId={result.module_id} data={result.data} />
+              <div className="mv-raw-toggle">
+                <button className="mv-raw-btn" onClick={() => setRawOpen(o => !o)}>
+                  {rawOpen ? 'Hide raw JSON' : 'View raw JSON'}
+                </button>
+                {rawOpen && (
+                  <pre className="json-viewer mv-raw-json">{JSON.stringify(result.data, null, 2)}</pre>
+                )}
+              </div>
+            </>
           ) : (
             <span style={{ fontSize: 13, color: 'var(--text-light)' }}>No data</span>
           )}
@@ -204,10 +216,15 @@ function durationSeconds(start: string | null, end: string | null): string | nul
 }
 
 export default function JobDetail({ job, onSelectCandidate }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+
   const assessment = job.final_assessment_result
   const ctx = job.resolved_context ?? job.query
   const title = ctx.company_name ?? ctx.registration_number ?? `Job ${job.job_id.slice(0, 8).toUpperCase()}`
   const metaParts = [ctx.jurisdiction, ctx.registration_number].filter(Boolean)
+
+  // True while the job is queued but no module has started yet
+  const isQueued = job.status === 'pending' && job.progress.length === 0 && !assessment
 
   return (
     <div className="job-detail">
@@ -219,77 +236,109 @@ export default function JobDetail({ job, onSelectCandidate }: Props) {
             <div className="job-detail-meta">{metaParts.join(' · ')}</div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {(job.status === 'pending' || job.status === 'running') && (
-            <span className="spinner" />
-          )}
-          <StatusBadge status={job.status} />
+        <div className="job-detail-header-right">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {(job.status === 'pending' || job.status === 'running') && (
+              <span className="spinner" />
+            )}
+            <StatusBadge status={job.status} />
+          </div>
+          <button className="btn-view-json-inline" onClick={() => dialogRef.current?.showModal()}>
+            {'{ }'} View JSON
+          </button>
         </div>
       </div>
 
-      {/* Context mismatch warning */}
-      <ContextPanel query={job.query} resolved={job.resolved_context} />
-
-      {/* Failed */}
-      {job.status === 'failed' && job.error && (
-        <div className="failed-banner">
-          <div className="failed-banner-title">Assessment Failed</div>
-          <p className="failed-banner-msg">{job.error}</p>
+      {/* Queued state — show instead of the main body */}
+      {isQueued && (
+        <div className="job-queued-body">
+          <span className="spinner job-queued-spinner" />
+          <div className="job-queued-text">Job submitted — waiting for processing to start</div>
+          <p className="job-queued-sub">Search modules will begin shortly. This page updates automatically.</p>
         </div>
       )}
 
-      {/* Ambiguous */}
-      {job.status === 'ambiguous' && job.candidates && job.candidates.length > 0 && (
-        <CandidatePicker candidates={job.candidates} onSelect={onSelectCandidate} />
+      {!isQueued && (
+        <>
+          {/* Full-width alerts */}
+          <ContextPanel query={job.query} resolved={job.resolved_context} />
+
+          {job.status === 'failed' && job.error && (
+            <div className="failed-banner">
+              <div className="failed-banner-title">Assessment Failed</div>
+              <p className="failed-banner-msg">{job.error}</p>
+            </div>
+          )}
+
+          {job.status === 'ambiguous' && job.candidates && job.candidates.length > 0 && (
+            <CandidatePicker candidates={job.candidates} onSelect={onSelectCandidate} />
+          )}
+        </>
       )}
 
-      {/* Risk summary */}
-      {assessment && <RiskPanel result={assessment} />}
+      {/* Two-column body */}
+      {!isQueued && (
+        <div className="job-detail-grid">
+          {/* Left: risk summary + module progress */}
+          <div className="job-detail-left">
+            {assessment && <RiskPanel result={assessment} />}
 
-      {/* Module progress */}
-      {job.progress.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            Module Progress
-            {job.status === 'running' && <span className="spinner" style={{ marginLeft: 'auto' }} />}
-          </div>
-          <div className="card-body-flush">
-            {job.progress.map(p => (
-              <div key={p.module_id} className="module-row">
-                <span className={`module-dot ${p.status}`} style={{ width: 9, height: 9 }} />
-                <span className="module-row-name">{p.module_name}</span>
-                <StatusBadge status={p.status} />
-                {p.error && (
-                  <span className="module-row-error" title={p.error}>{p.error}</span>
-                )}
-                <span className="module-row-dur">
-                  {durationSeconds(p.started_at, p.completed_at)}
-                </span>
+            {job.progress.length > 0 && (
+              <div className="card">
+                <div className="card-header">
+                  Module Progress
+                  {job.status === 'running' && <span className="spinner" style={{ marginLeft: 'auto' }} />}
+                </div>
+                <div className="card-body-flush">
+                  {job.progress.map(p => (
+                    <div key={p.module_id} className="module-row">
+                      <span className={`module-dot ${p.status}`} style={{ width: 9, height: 9 }} />
+                      <span className="module-row-name">{p.module_name}</span>
+                      <StatusBadge status={p.status} />
+                      {p.error && (
+                        <span className="module-row-error" title={p.error}>{p.error}</span>
+                      )}
+                      <span className="module-row-dur">
+                        {durationSeconds(p.started_at, p.completed_at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+          </div>
+
+          {/* Right: module results + JSON button */}
+          <div className="job-detail-right">
+            {job.finished_module_results.length > 0 && (
+              <div className="card">
+                <div className="card-header">Module Results</div>
+                <div className="card-body-flush">
+                  {job.finished_module_results.map(r => (
+                    <ModuleResultCard key={r.module_id} result={r} />
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
 
-      {/* Module results (live as they finish) */}
-      {job.finished_module_results.length > 0 && (
-        <div className="card">
-          <div className="card-header">Module Results</div>
-          <div className="card-body-flush">
-            {job.finished_module_results.map(r => (
-              <ModuleResultCard key={r.module_id} result={r} />
-            ))}
-          </div>
+      {/* Full JSON dialog */}
+      <dialog
+        ref={dialogRef}
+        className="json-dialog"
+        onClick={e => { if (e.target === dialogRef.current) dialogRef.current?.close() }}
+      >
+        <div className="json-dialog-header">
+          <span>Full Response JSON</span>
+          <button className="json-dialog-close" onClick={() => dialogRef.current?.close()}>✕</button>
         </div>
-      )}
-
-      {/* Full JSON */}
-      <div className="card">
-        <div className="card-header">Full Response JSON</div>
-        <div className="card-body">
+        <div className="json-dialog-body">
           <pre className="json-viewer">{JSON.stringify(job, null, 2)}</pre>
         </div>
-      </div>
+      </dialog>
     </div>
   )
 }

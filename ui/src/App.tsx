@@ -20,6 +20,16 @@ function EmptyState() {
   )
 }
 
+function JobLoadingState() {
+  return (
+    <div className="empty-state">
+      <span className="spinner" style={{ width: 22, height: 22, borderWidth: 3 }} />
+      <h2>Submitting job…</h2>
+      <p>Waiting for the server to confirm the job.</p>
+    </div>
+  )
+}
+
 export default function App() {
   const [jobs, setJobs] = useState<JobResponse[]>([])
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
@@ -104,7 +114,9 @@ export default function App() {
         <main className="main-content">
           {selectedJob
             ? <JobDetail job={selectedJob} onSelectCandidate={handleSelectCandidate} />
-            : <EmptyState />
+            : selectedJobId
+              ? <JobLoadingState />
+              : <EmptyState />
           }
         </main>
       </div>
