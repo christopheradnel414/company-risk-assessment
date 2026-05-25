@@ -34,12 +34,14 @@ class AssessmentService:
         await self._job_manager.update_module_status(
             job_id, module.module_id, module.module_name, ModuleStatus.FAILED, error=error_msg
         )
-        return SearchResult(
+        result = SearchResult(
             module_id=module.module_id,
             module_name=module.module_name,
             status=ModuleStatus.FAILED,
             error=error_msg,
         )
+        await self._job_manager.add_module_result(job_id, result)
+        return result
 
     async def _run_module(
         self,
@@ -79,13 +81,15 @@ class AssessmentService:
             await self._job_manager.update_module_status(
                 job_id, module.module_id, module.module_name, ModuleStatus.COMPLETED
             )
-            return SearchResult(
+            result = SearchResult(
                 module_id=module.module_id,
                 module_name=module.module_name,
                 status=ModuleStatus.COMPLETED,
                 data=parsed,
                 schema_errors=schema_errors or None,
             )
+            await self._job_manager.add_module_result(job_id, result)
+            return result
 
         except asyncio.TimeoutError:
             logger.warning("Module '%s' timed out for job %s", module.module_id, job_id)
@@ -207,7 +211,6 @@ class AssessmentService:
                     company_name=match.company_name,
                     registration_number=match.registration_number,
                     jurisdiction=jurisdiction,
-                    search_results=all_results,
                     risk_summary=risk_summary,
                     warnings=registry_warnings,
                 ),

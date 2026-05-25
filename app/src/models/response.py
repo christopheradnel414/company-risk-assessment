@@ -71,7 +71,6 @@ class AssessmentResult(BaseModel):
     company_name: Optional[str]
     registration_number: Optional[str]
     jurisdiction: str
-    search_results: List[SearchResult]
     risk_summary: RiskSummary
     warnings: List[str]
 
@@ -87,12 +86,16 @@ class JobResponse(BaseModel):
     progress: List[SearchModuleProgress] = Field(
         description="Status of each individual search module"
     )
+    finished_module_results: List[SearchResult] = Field(
+        default_factory=list,
+        description="Parsed results from each completed module — populated incrementally as modules finish",
+    )
     candidates: Optional[List[CandidateCompany]] = Field(
         None,
         description="Ambiguous registry matches — populated when status is 'ambiguous'. "
                     "Resubmit with registration_number to disambiguate.",
     )
-    result: Optional[AssessmentResult] = Field(
+    final_assessment_result: Optional[AssessmentResult] = Field(
         None, description="Final assessment result — populated once status is 'completed'"
     )
     error: Optional[str] = Field(

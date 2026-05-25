@@ -11,6 +11,7 @@ from app.src.models.response import (
     JobStatus,
     ModuleStatus,
     SearchModuleProgress,
+    SearchResult,
 )
 
 
@@ -25,6 +26,7 @@ class _Job:
         self.updated_at: datetime = datetime.now(timezone.utc)
         self.completed_at: Optional[datetime] = None
         self.module_statuses: Dict[str, SearchModuleProgress] = {}
+        self.finished_module_results: List[SearchResult] = []
         self.result: Optional[AssessmentResult] = None
         self.candidates: Optional[List[CandidateCompany]] = None
         self.error: Optional[str] = None
@@ -37,8 +39,9 @@ class _Job:
             updated_at=self.updated_at,
             completed_at=self.completed_at,
             progress=list(self.module_statuses.values()),
+            finished_module_results=list(self.finished_module_results),
             candidates=self.candidates,
-            result=self.result,
+            final_assessment_result=self.result,
             error=self.error,
         )
 
@@ -52,7 +55,7 @@ class _Job:
             completed_at=self.completed_at,
             progress=list(self.module_statuses.values()),
             candidates=self.candidates,
-            result=None,
+            final_assessment_result=None,
             error=self.error,
         )
 
@@ -143,6 +146,13 @@ class JobManager:
                 now = datetime.now(timezone.utc)
                 job.updated_at = now
                 job.completed_at = now
+
+    async def add_module_result(self, job_id: str, result: SearchResult) -> None:
+        async with self._lock:
+            job = self._jobs.get(job_id)
+            if job:
+                job.finished_module_results.append(result)
+                job.updated_at = datetime.now(timezone.utc)
 
     def get_job(self, job_id: str) -> Optional[_Job]:
         return self._jobs.get(job_id)
