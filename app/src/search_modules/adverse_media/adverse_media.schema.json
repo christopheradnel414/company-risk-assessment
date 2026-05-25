@@ -15,7 +15,8 @@
     },
     "hits": {
       "type": "array",
-      "description": "Individual adverse media items found",
+      "description": "Top adverse media items found — at most 5, prioritised by severity",
+      "maxItems": 5,
       "items": {
         "type": "object",
         "required": ["title", "url", "snippet", "category"],

@@ -34,6 +34,7 @@ export default function App() {
   const [jobs, setJobs] = useState<JobResponse[]>([])
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const jobRef = useRef<JobResponse | null>(null)
   jobRef.current = selectedJob
@@ -94,15 +95,23 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="app-header-brand">
-          <div className="app-header-brand-icon">◈</div>
-          Company Risk Assessment
+        <div className="app-header-left">
+          <button
+            className="sidebar-toggle-btn"
+            onClick={() => setSidebarOpen(o => !o)}
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          >
+            ☰
+          </button>
+          <div className="app-header-brand">
+            <div className="app-header-brand-icon">◈</div>
+            Company Risk Assessment
+          </div>
         </div>
-        <span className="app-header-sub">Due Diligence Dashboard</span>
       </header>
 
       <div className="app-body">
-        <aside className="sidebar">
+        <aside className={`sidebar${sidebarOpen ? '' : ' collapsed'}`}>
           <SubmitForm onSubmit={handleSubmit} />
           <JobList
             jobs={jobs}

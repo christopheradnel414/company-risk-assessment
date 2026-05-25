@@ -20,6 +20,7 @@ _SYSTEM_PROMPT = (
     "Use the web_search tool to run the provided queries, then return a single JSON object "
     "that strictly matches the schema below. "
     "Each hit must include the real URL and title from the search result — do not invent or omit URLs. "
+    "Include at most 5 hits, selecting only the most credible and severe findings. "
     "Return ONLY the JSON object, no markdown fences, no explanation.\n\n"
     f"Schema:\n{json.dumps(_SCHEMA, indent=2)}"
 )

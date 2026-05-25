@@ -22,11 +22,6 @@ export default function AdverseMediaView({ data }: { data: unknown }) {
         {d.adverse_media_found ? '⚠ Adverse media found' : '✓ No adverse media found'}
       </div>
       {d.summary && <p className="mv-summary">{d.summary}</p>}
-      {d.risk_indicators && d.risk_indicators.length > 0 && (
-        <div className="mv-tags mv-tags-danger">
-          {d.risk_indicators.map((r, i) => <span key={i} className="mv-tag-danger">{r}</span>)}
-        </div>
-      )}
       {d.hits && d.hits.length > 0 && (
         <div className="mv-section">
           <div className="mv-section-title">Adverse Media Hits ({d.hits.length})</div>
