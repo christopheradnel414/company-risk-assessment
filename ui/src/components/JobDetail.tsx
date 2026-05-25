@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { AssessmentResult, CandidateCompany, JobResponse, SearchResult } from '../types'
+import type { AssessmentResult, CandidateCompany, JobResponse, SearchContext, SearchResult } from '../types'
 
 interface Props {
   job: JobResponse
@@ -90,6 +90,64 @@ function RiskPanel({ result }: { result: AssessmentResult }) {
   )
 }
 
+function normalise(s: string | null | undefined): string {
+  return (s ?? '').toLowerCase().trim()
+}
+
+function contextMismatch(query: SearchContext, resolved: SearchContext): string[] {
+  const warnings: string[] = []
+  if (
+    query.company_name &&
+    resolved.company_name &&
+    normalise(query.company_name) !== normalise(resolved.company_name)
+  ) {
+    warnings.push(
+      `Searched for "${query.company_name}" but registry resolved to "${resolved.company_name}".`
+    )
+  }
+  if (
+    query.registration_number &&
+    resolved.registration_number &&
+    normalise(query.registration_number) !== normalise(resolved.registration_number)
+  ) {
+    warnings.push(
+      `Registration number changed from "${query.registration_number}" to "${resolved.registration_number}".`
+    )
+  }
+  return warnings
+}
+
+function ContextPanel({ query, resolved }: { query: SearchContext; resolved: SearchContext | null }) {
+  const mismatches = resolved ? contextMismatch(query, resolved) : []
+  const showResolved = resolved && (
+    normalise(query.company_name) !== normalise(resolved.company_name) ||
+    normalise(query.registration_number) !== normalise(resolved.registration_number)
+  )
+
+  if (mismatches.length === 0 && !showResolved) return null
+
+  return (
+    <div className="context-panel">
+      {mismatches.map((w, i) => (
+        <div key={i} className="context-mismatch-row">
+          <span className="context-mismatch-icon">⚠</span>
+          <span>{w}</span>
+        </div>
+      ))}
+      {showResolved && resolved && (
+        <div className="context-resolved-row">
+          <span className="context-resolved-label">Resolved to</span>
+          <span className="context-resolved-value">
+            {[resolved.company_name, resolved.registration_number, resolved.jurisdiction]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CandidatePicker({
   candidates,
   onSelect,
@@ -147,14 +205,9 @@ function durationSeconds(start: string | null, end: string | null): string | nul
 
 export default function JobDetail({ job, onSelectCandidate }: Props) {
   const assessment = job.final_assessment_result
-  const title = assessment?.company_name
-    ?? job.candidates?.[0]?.company_name
-    ?? `Job ${job.job_id.slice(0, 8).toUpperCase()}`
-
-  const metaParts = [
-    assessment?.jurisdiction ?? job.candidates?.[0]?.jurisdiction,
-    assessment?.registration_number,
-  ].filter(Boolean)
+  const ctx = job.resolved_context ?? job.query
+  const title = ctx.company_name ?? ctx.registration_number ?? `Job ${job.job_id.slice(0, 8).toUpperCase()}`
+  const metaParts = [ctx.jurisdiction, ctx.registration_number].filter(Boolean)
 
   return (
     <div className="job-detail">
@@ -173,6 +226,9 @@ export default function JobDetail({ job, onSelectCandidate }: Props) {
           <StatusBadge status={job.status} />
         </div>
       </div>
+
+      {/* Context mismatch warning */}
+      <ContextPanel query={job.query} resolved={job.resolved_context} />
 
       {/* Failed */}
       {job.status === 'failed' && job.error && (

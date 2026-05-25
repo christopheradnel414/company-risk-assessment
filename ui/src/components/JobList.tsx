@@ -2,7 +2,6 @@ import type { JobResponse } from '../types'
 
 interface Props {
   jobs: JobResponse[]
-  jobCache: Record<string, JobResponse>
   selectedJobId: string | null
   onSelect: (id: string) => void
 }
@@ -15,12 +14,19 @@ function relativeTime(iso: string): string {
   return `${Math.floor(m / 60)}h ago`
 }
 
-function jobDisplayName(job: JobResponse, cache: Record<string, JobResponse>): string {
-  const full = cache[job.job_id]
-  return full?.final_assessment_result?.company_name ?? job.job_id.slice(0, 8).toUpperCase()
+function jobDisplayName(job: JobResponse): string {
+  // Prefer the resolved canonical name, then the original query, then the job ID
+  const ctx = job.resolved_context ?? job.query
+  return ctx.company_name ?? ctx.registration_number ?? job.job_id.slice(0, 8).toUpperCase()
 }
 
-export default function JobList({ jobs, jobCache, selectedJobId, onSelect }: Props) {
+function jobSubtitle(job: JobResponse): string {
+  const ctx = job.resolved_context ?? job.query
+  const parts = [ctx.jurisdiction, ctx.registration_number].filter(Boolean)
+  return parts.join(' · ')
+}
+
+export default function JobList({ jobs, selectedJobId, onSelect }: Props) {
   return (
     <div className="job-list">
       <div className="job-list-label">Recent Jobs</div>
@@ -34,9 +40,10 @@ export default function JobList({ jobs, jobCache, selectedJobId, onSelect }: Pro
           onClick={() => onSelect(job.job_id)}
         >
           <div className="job-card-top">
-            <span className="job-card-name">{jobDisplayName(job, jobCache)}</span>
+            <span className="job-card-name">{jobDisplayName(job)}</span>
             <span className={`status-badge ${job.status}`}>{job.status}</span>
           </div>
+          <div className="job-card-sub">{jobSubtitle(job)}</div>
           <div className="job-card-meta">
             <span className="job-card-time">{relativeTime(job.created_at)}</span>
             {job.progress.length > 0 && (

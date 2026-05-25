@@ -42,12 +42,20 @@ export interface CandidateCompany {
   warnings: string[]
 }
 
+export interface SearchContext {
+  company_name: string | null
+  registration_number: string | null
+  jurisdiction: string
+}
+
 export interface JobResponse {
   job_id: string
   status: JobStatus
   created_at: string
   updated_at: string
   completed_at: string | null
+  query: SearchContext
+  resolved_context: SearchContext | null
   progress: SearchModuleProgress[]
   finished_module_results: SearchResult[]
   candidates: CandidateCompany[] | null

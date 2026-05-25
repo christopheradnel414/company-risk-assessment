@@ -24,9 +24,7 @@ export default function App() {
   const [jobs, setJobs] = useState<JobResponse[]>([])
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null)
-  const [jobCache, setJobCache] = useState<Record<string, JobResponse>>({})
 
-  // Ref so the detail-poll interval can check status without re-creating itself
   const jobRef = useRef<JobResponse | null>(null)
   jobRef.current = selectedJob
 
@@ -56,16 +54,12 @@ export default function App() {
       if (!alive) return
       try {
         const job = await fetchJob(selectedJobId)
-        if (alive) {
-          setSelectedJob(job)
-          setJobCache(prev => ({ ...prev, [job.job_id]: job }))
-        }
+        if (alive) setSelectedJob(job)
       } catch { /* ignore transient errors */ }
     }
 
-    tick() // immediate first fetch
+    tick()
     const id = setInterval(() => {
-      // Stop polling once the job reaches a terminal state
       if (!ACTIVE_STATUSES.has(jobRef.current?.status ?? 'pending')) return
       tick()
     }, DETAIL_POLL_MS)
@@ -102,7 +96,6 @@ export default function App() {
           <SubmitForm onSubmit={handleSubmit} />
           <JobList
             jobs={jobs}
-            jobCache={jobCache}
             selectedJobId={selectedJobId}
             onSelect={setSelectedJobId}
           />

@@ -4,6 +4,8 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from app.src.models.context import SearchContext
+
 
 class ModuleStatus(str, Enum):
     PENDING = "pending"
@@ -83,6 +85,12 @@ class JobResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
+    query: SearchContext = Field(description="Original search identifiers submitted by the user")
+    resolved_context: Optional[SearchContext] = Field(
+        None,
+        description="Canonical company identity resolved by the registry. "
+                    "None if registry resolution has not completed or failed.",
+    )
     progress: List[SearchModuleProgress] = Field(
         description="Status of each individual search module"
     )

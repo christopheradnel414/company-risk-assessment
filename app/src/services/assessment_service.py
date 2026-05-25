@@ -179,6 +179,7 @@ class AssessmentService:
                 registration_number=match.registration_number,
                 jurisdiction=match.jurisdiction,
             )
+            await self._job_manager.set_resolved_context(job_id, context)
 
             modules = get_all_modules(jurisdiction)
 
