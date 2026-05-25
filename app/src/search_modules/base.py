@@ -38,7 +38,6 @@ class BaseSearchModule(ABC):
         "Extract and structure all relevant information from the provided raw data as JSON."
     )
 
-    # ── Interface ──────────────────────────────────────────────────────────────
 
     @abstractmethod
     async def fetch(self, context: SearchContext) -> SearchModuleResult:

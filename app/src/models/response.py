@@ -32,8 +32,6 @@ class CandidateCompany(BaseModel):
     warnings: List[str]
 
 
-# ── Per-module progress (returned in job status) ───────────────────────────────
-
 class SearchModuleProgress(BaseModel):
     module_id: str = Field(description="Unique identifier for the search module")
     module_name: str = Field(description="Human-readable module name")
@@ -42,8 +40,6 @@ class SearchModuleProgress(BaseModel):
     completed_at: Optional[datetime] = None
     error: Optional[str] = Field(None, description="Error message if status is 'failed'")
 
-
-# ── Per-module result (included in final assessment) ──────────────────────────
 
 class SearchResult(BaseModel):
     module_id: str
@@ -57,8 +53,6 @@ class SearchResult(BaseModel):
     )
 
 
-# ── Risk summary produced by the LLM synthesis step ──────────────────────────
-
 class RiskSummary(BaseModel):
     overall_risk_level: Literal["high", "medium", "low", "unknown"] = Field(
         description="Aggregated risk level derived from risk_score: 0-29=low, 30-59=medium, 60-100=high"
@@ -67,8 +61,6 @@ class RiskSummary(BaseModel):
     summary: str = Field(description="2-3 sentence narrative conclusion of the overall risk assessment")
 
 
-# ── Final assessment result ───────────────────────────────────────────────────
-
 class AssessmentResult(BaseModel):
     company_name: Optional[str]
     registration_number: Optional[str]
@@ -76,8 +68,6 @@ class AssessmentResult(BaseModel):
     risk_summary: RiskSummary
     warnings: List[str]
 
-
-# ── Job API responses ─────────────────────────────────────────────────────────
 
 class JobResponse(BaseModel):
     job_id: str
