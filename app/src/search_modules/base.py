@@ -54,4 +54,4 @@ class BaseSearchModule(ABC):
         """Return True if this module should run for the given jurisdiction."""
         if self.jurisdictions is None:
             return True
-        return jurisdiction.upper() in [j.upper() for j in self.jurisdictions]
+        return jurisdiction.upper() in {j.upper() for j in self.jurisdictions}

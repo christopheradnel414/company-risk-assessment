@@ -6,7 +6,7 @@ import openai
 from openai import AsyncOpenAI
 
 from app.src.config import get_settings
-from app.src.models.response import RiskSummary, SearchResult
+from app.src.models.response import ModuleStatus, RiskSummary, SearchResult
 from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 
 logger = logging.getLogger(__name__)
@@ -133,8 +133,8 @@ class LLMService:
             for r in search_results
         ]
 
-        completed = sum(1 for r in search_results if r.status == "completed")
-        failed = sum(1 for r in search_results if r.status == "failed")
+        completed = sum(1 for r in search_results if r.status == ModuleStatus.COMPLETED)
+        failed = sum(1 for r in search_results if r.status == ModuleStatus.FAILED)
 
         user_prompt = (
             f"Assess risk for:\n"

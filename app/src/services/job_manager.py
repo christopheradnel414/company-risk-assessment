@@ -69,8 +69,6 @@ class JobManager:
         self._jobs: Dict[str, _Job] = {}
         self._lock = asyncio.Lock()
 
-    # ── Write operations (all acquire the lock) ────────────────────────────────
-
     def create_job(self, request: AssessmentRequest) -> str:
         """Create a new job synchronously and return its ID."""
         job_id = str(uuid.uuid4())
@@ -145,8 +143,6 @@ class JobManager:
                 now = datetime.now(timezone.utc)
                 job.updated_at = now
                 job.completed_at = now
-
-    # ── Read operations ────────────────────────────────────────────────────────
 
     def get_job(self, job_id: str) -> Optional[_Job]:
         return self._jobs.get(job_id)

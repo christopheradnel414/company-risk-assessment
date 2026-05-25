@@ -42,4 +42,4 @@ class BaseRegistryModule(ABC):
     def applies_to(self, jurisdiction: str) -> bool:
         if self.jurisdictions is None:
             return True
-        return jurisdiction.upper() in [j.upper() for j in self.jurisdictions]
+        return jurisdiction.upper() in {j.upper() for j in self.jurisdictions}

@@ -132,7 +132,6 @@ class AssessmentService:
                 jurisdiction=jurisdiction,
             )
 
-            # Phase 1: registry disambiguation
             registry_modules = get_registry_modules(jurisdiction)
             registry_warnings: list[str] = []
 
@@ -177,13 +176,14 @@ class AssessmentService:
                 jurisdiction=match.jurisdiction,
             )
 
-            # Phase 2: search modules
             modules = get_all_modules(jurisdiction)
 
-            for module in modules:
-                await self._job_manager.update_module_status(
+            await asyncio.gather(*[
+                self._job_manager.update_module_status(
                     job_id, module.module_id, module.module_name, ModuleStatus.PENDING
                 )
+                for module in modules
+            ])
 
             all_results = await self._gather_modules(job_id, modules, context)
 
@@ -195,8 +195,8 @@ class AssessmentService:
                 return
 
             risk_summary = await self._llm_service.synthesize_results(
-                company_name=request.company_name,
-                registration_number=request.registration_number,
+                company_name=match.company_name,
+                registration_number=match.registration_number,
                 jurisdiction=jurisdiction,
                 search_results=all_results,
             )
