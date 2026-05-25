@@ -14,4 +14,4 @@ COPY --from=build /app/dist /usr/share/nginx/html
 
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-EXPOSE 80
+EXPOSE 5173
