@@ -24,7 +24,7 @@ export default function SubmitForm({ onSubmit }: Props) {
       await onSubmit({
         company_name: companyName.trim() || undefined,
         registration_number: regNumber.trim() || undefined,
-        jurisdiction: jurisdiction.trim().toUpperCase() || 'GB',
+        jurisdiction: jurisdiction,
       })
       setCompanyName('')
       setRegNumber('')
@@ -58,13 +58,13 @@ export default function SubmitForm({ onSubmit }: Props) {
       </div>
       <div className="form-field">
         <label>Jurisdiction</label>
-        <input
+        <select
           value={jurisdiction}
-          onChange={e => setJurisdiction(e.target.value.toUpperCase())}
-          placeholder="GB"
-          maxLength={2}
+          onChange={e => setJurisdiction(e.target.value)}
           disabled={loading}
-        />
+        >
+          <option value="GB">GB</option>
+        </select>
       </div>
       {error && <div className="form-error">{error}</div>}
       <button className="btn-submit" type="submit" disabled={loading}>
