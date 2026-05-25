@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "icij_offshore_leaks",
+  "type": "object",
+  "required": ["is_mentioned_in_leaks", "entities_found", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "is_mentioned_in_leaks": {
+      "type": "boolean",
+      "description": "True if you are confident the queried company genuinely appears in a leak dataset"
+    },
+    "entities_found": {
+      "type": "array",
+      "description": "Entities judged to be plausible matches for the queried company",
+      "items": {
+        "type": "object",
+        "required": ["name", "dataset", "entity_type", "score"],
+        "additionalProperties": false,
+        "properties": {
+          "name":        { "type": "string" },
+          "dataset":     { "type": "string", "description": "e.g. Panama Papers, Pandora Papers, Paradise Papers, Bahamas Leaks, Offshore Leaks" },
+          "entity_type": { "type": "string", "description": "e.g. Entity, Officer, Intermediary, Address" },
+          "score":       { "type": "number", "description": "Reconciliation confidence score 0-100" },
+          "match":       { "type": "boolean", "description": "True if the API considers this a confident match" },
+          "source_url":  { "type": "string", "description": "https://offshoreleaks.icij.org/nodes/{id}" }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "description": "1-2 sentence summary of findings, or confirmation that no matches were found"
+    }
+  }
+}
