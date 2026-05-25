@@ -14,28 +14,7 @@ def _job_manager(request: Request) -> JobManager:
     "/{job_id}",
     response_model=JobResponse,
     summary="Get job status and results",
-    description="""
-        Retrieve the current status and results of a background check job.
-
-        ### Job status lifecycle
-        | Status | Meaning |
-        |--------|---------|
-        | `pending` | Job is queued and hasn't started yet |
-        | `running` | Searches are in progress |
-        | `completed` | All searches done; full results available in `result` |
-        | `failed` | Unrecoverable error — check server logs |
-
-        ### Module status lifecycle
-        | Status | Meaning |
-        |--------|---------|
-        | `pending` | Module not yet started |
-        | `running` | Module is fetching / processing data |
-        | `completed` | Module finished successfully |
-        | `failed` | Module encountered an error (others continue regardless) |
-
-        > Individual module failures do **not** fail the overall job — the LLM synthesis
-        > works with whichever modules succeeded.
-    """,
+    description="Retrieve the current status and results of a background check job.",
 )
 async def get_job(job_id: str, request: Request) -> JobResponse:
     job = _job_manager(request).get_job(job_id)

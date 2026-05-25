@@ -103,10 +103,7 @@ class AssessmentService:
         registry_modules: list[BaseRegistryModule],
         context: SearchContext,
     ) -> tuple[list, list[str]]:
-        """
-        Run all registry modules in parallel and merge candidates.
-        Deduplicates by registration_number. Returns (candidates, errors).
-        """
+        
         results = await asyncio.gather(
             *[m.search_companies(context) for m in registry_modules],
             return_exceptions=True,
@@ -164,16 +161,16 @@ class AssessmentService:
                 return
 
             if len(candidates) > 1 and request.company_name:
-                exact = [
+                exact_name_matches = [
                     c for c in candidates
                     if c.company_name.strip().lower() == request.company_name.strip().lower()
                 ]
-                if len(exact) == 1:
+                if len(exact_name_matches) == 1:
                     logger.info(
                         "Job %s — resolved ambiguity via exact name match: '%s'",
-                        job_id, exact[0].company_name,
+                        job_id, exact_name_matches[0].company_name,
                     )
-                    candidates = exact
+                    candidates = exact_name_matches
 
             if len(candidates) > 1:
                 logger.info("Job %s — ambiguous: %d candidates found", job_id, len(candidates))
@@ -202,7 +199,7 @@ class AssessmentService:
                 for module in modules
             ])
 
-            all_results = await self._gather_modules(job_id, modules, context)
+            all_results = await self._gather_search_modules(job_id, modules, context)
 
             if all(r.status == ModuleStatus.FAILED for r in all_results):
                 failed_names = ", ".join(r.module_name for r in all_results)
@@ -233,13 +230,13 @@ class AssessmentService:
             logger.error("Assessment job %s failed with unhandled error: %s", job_id, exc)
             await self._job_manager.fail_job(job_id, str(exc))
 
-    async def _gather_modules(
+    async def _gather_search_modules(
         self,
         job_id: str,
         modules: list[BaseSearchModule],
         context: SearchContext,
     ) -> list[SearchResult]:
-        """Run all modules in parallel; normalise any escaped exceptions."""
+        
         raw = await asyncio.gather(
             *[self._run_module(job_id, m, context) for m in modules],
             return_exceptions=True,

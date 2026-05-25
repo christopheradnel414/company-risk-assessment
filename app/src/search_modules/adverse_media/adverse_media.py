@@ -13,7 +13,7 @@ from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 logger = logging.getLogger(__name__)
 
 _SCHEMA = json.loads((Path(__file__).with_suffix(".schema.json")).read_text())
-_LLM_RETRY = 3
+_LLM_RETRY = 3 # the number of retries allowed for LLM parsing
 
 _SYSTEM_PROMPT = (
     "You are a company due diligence analyst specialising in adverse media screening. "

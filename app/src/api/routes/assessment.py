@@ -21,24 +21,7 @@ def _assessment_service(request: Request) -> AssessmentService:
     response_model=CreateAssessmentResponse,
     status_code=202,
     summary="Submit a company for background check",
-    description="""
-        Submit a company for a full background check. The assessment runs **asynchronously** in the
-        background, allowing you to return immediately and poll for progress.
-
-        ### What happens after submission
-        1. A `job_id` is returned immediately (HTTP 202 Accepted).
-        2. All applicable search modules start **in parallel**.
-        3. Each module's raw data is parsed by an LLM into structured JSON.
-        4. Once all modules complete, a final LLM synthesis produces the overall risk summary.
-
-        ### Polling for results
-        Use the `status_url` from the response to poll `GET /api/v1/jobs/{job_id}`.
-        The `progress` array in the job response shows per-module status in real time.
-
-        ### Jurisdiction-aware modules
-        Some search modules only run for specific jurisdictions (e.g. Companies House is GB-only).
-        The `jurisdiction` field (ISO 3166-1 alpha-2) controls which modules activate.
-    """,
+    description="Submit a company for a full background check. The assessment runs asynchronously in the background, allowing you to return immediately and poll for progress.",
 )
 async def create_assessment(
     payload: AssessmentRequest,

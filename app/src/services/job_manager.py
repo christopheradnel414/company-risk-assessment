@@ -17,8 +17,6 @@ from app.src.models.response import (
 
 
 class _Job:
-    """Internal job state object — not exposed directly in the API."""
-
     def __init__(self, job_id: str, request: AssessmentRequest) -> None:
         self.job_id = job_id
         self.request = request
@@ -74,19 +72,11 @@ class _Job:
 
 
 class JobManager:
-    """
-    In-memory job store with asyncio locking for safe concurrent updates.
-
-    For production use, replace the in-memory dict with a Redis or database
-    backend — the public interface stays the same.
-    """
-
     def __init__(self) -> None:
         self._jobs: Dict[str, _Job] = {}
         self._lock = asyncio.Lock()
 
     def create_job(self, request: AssessmentRequest) -> str:
-        """Create a new job synchronously and return its ID."""
         job_id = str(uuid.uuid4())
         self._jobs[job_id] = _Job(job_id=job_id, request=request)
         return job_id
@@ -120,15 +110,15 @@ class JobManager:
                     status=status,
                 )
 
-            ms = job.module_statuses[module_id]
-            ms.status = status
+            module_status = job.module_statuses[module_id]
+            module_status.status = status
 
-            if status == ModuleStatus.RUNNING and ms.started_at is None:
-                ms.started_at = now
+            if status == ModuleStatus.RUNNING and module_status.started_at is None:
+                module_status.started_at = now
             elif status in (ModuleStatus.COMPLETED, ModuleStatus.FAILED):
-                ms.completed_at = now
+                module_status.completed_at = now
                 if error:
-                    ms.error = error
+                    module_status.error = error
 
             job.updated_at = now
 

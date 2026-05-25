@@ -8,22 +8,6 @@ if TYPE_CHECKING:
 
 
 class BaseRegistryModule(ABC):
-    """
-    Abstract base class for registry disambiguation modules.
-
-    These run before search modules to resolve an ambiguous company name into a
-    single canonical company (name + registration number). If multiple matches are
-    found across all applicable registry modules, the job is paused and the caller
-    is asked to resubmit with a registration number.
-
-    ## Adding a new registry module
-    1. Create a new file in `app/registry_modules/`
-    2. Subclass `BaseRegistryModule`
-    3. Set `module_id`, `module_name`, and `jurisdictions`
-    4. Implement `search_companies(context)` — return a list of `CandidateCompany`
-    5. Add the class to `ALL_REGISTRY_CLASSES` in `app/src/registry_modules/modules.py`
-    """
-
     module_id: ClassVar[str]
     module_name: ClassVar[str]
     jurisdictions: ClassVar[Optional[List[str]]] = None

@@ -23,7 +23,6 @@ class JobStatus(str, Enum):
 
 
 class CandidateCompany(BaseModel):
-    """A company match returned during registry disambiguation."""
     company_name: str
     registration_number: str
     jurisdiction: str

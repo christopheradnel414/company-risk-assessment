@@ -14,19 +14,6 @@ class SearchModuleResult(BaseModel):
 
 
 class BaseSearchModule(ABC):
-    """
-    Abstract base class for all search modules.
-
-    ## Adding a new module
-    1. Create a new file in `app/search_modules/`
-    2. Subclass `BaseSearchModule`
-    3. Set `module_id`, `module_name`, `description` and optionally `jurisdictions`
-    4. Define `output_schema` (JSON Schema dict) for validation and LLM guidance
-    5. If fetch() already returns data matching output_schema, set skip_llm_parsing=True
-    6. Implement `fetch(context)`
-    7. Register the class in `app/src/search_modules/modules.py`
-    """
-
     module_id: ClassVar[str]
     module_name: ClassVar[str]
     description: ClassVar[str]

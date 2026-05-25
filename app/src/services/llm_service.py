@@ -11,10 +11,9 @@ from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 
 logger = logging.getLogger(__name__)
 
-_LLM_RETRY = 3
+_LLM_RETRY = 3 # the number of retries allowed for LLM parsing
 
 class LLMService:
-    """Wraps OpenRouter API calls for per-module parsing and final synthesis."""
 
     def __init__(self) -> None:
         settings = get_settings()
@@ -24,12 +23,11 @@ class LLMService:
             base_url=settings.openrouter_base_url
         )
 
-    async def _chat(
+    async def _structured_chat(
         self, system_prompt: str, user_prompt: str, schema: dict, temperature: float = 0.0
     ) -> dict:
         if not schema:
-            raise ValueError("_chat requires a schema")
-        response_format = {"type": "json_schema", "json_schema": {"name": "output", "schema": schema, "strict": True}}
+            raise ValueError("_structured_chat requires a schema")
         last_exc: Exception = RuntimeError("No attempts made")
         for attempt in range(1, _LLM_RETRY + 2):
             try:
@@ -39,7 +37,10 @@ class LLMService:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
-                    response_format=response_format,
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {"name": "output", "schema": schema, "strict": True}
+                    },
                     temperature=temperature,
                 )
                 content = response.choices[0].message.content
@@ -73,7 +74,7 @@ class LLMService:
         )
 
         try:
-            return await self._chat(module.system_prompt, user_prompt, schema=module.output_schema)
+            return await self._structured_chat(module.system_prompt, user_prompt, schema=module.output_schema)
         except Exception as exc:
             logger.error("LLM parsing failed for module '%s': %s", module.module_id, exc)
             return {"error": f"LLM parsing failed: {exc}"}
@@ -148,7 +149,7 @@ class LLMService:
             f"and note the data gap in the summary."
         )
 
-        result = await self._chat(
+        result = await self._structured_chat(
             self._SYNTHESIS_SYSTEM_PROMPT,
             user_prompt,
             schema=self._SYNTHESIS_SCHEMA,
