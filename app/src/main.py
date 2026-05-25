@@ -1,9 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.src.api.dependencies import verify_api_key
 from app.src.api.routes import assessment, jobs
 from app.src.config import get_settings
 from app.src.services.assessment_service import AssessmentService
@@ -101,8 +102,9 @@ app.add_middleware(
 )
 
 _API_PREFIX = "/api/v1"
-app.include_router(assessment.router, prefix=_API_PREFIX)
-app.include_router(jobs.router, prefix=_API_PREFIX)
+_auth = [Depends(verify_api_key)]
+app.include_router(assessment.router, prefix=_API_PREFIX, dependencies=_auth)
+app.include_router(jobs.router, prefix=_API_PREFIX, dependencies=_auth)
 
 
 # ── Utility endpoints ──────────────────────────────────────────────────────────
@@ -118,7 +120,7 @@ async def health():
     return {"status": "healthy"}
 
 
-@app.get("/api/v1/modules", tags=["Modules"], summary="List all registered search modules")
+@app.get("/api/v1/modules", tags=["Modules"], summary="List all registered search modules", dependencies=_auth)
 async def list_modules():
     """
     Returns metadata for every registered search module including
