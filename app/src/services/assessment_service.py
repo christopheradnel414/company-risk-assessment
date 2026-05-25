@@ -35,6 +35,19 @@ class AssessmentService:
 
     # ── Single-module execution ────────────────────────────────────────────────
 
+    async def _fail_module(
+        self, job_id: str, module: BaseSearchModule, error_msg: str
+    ) -> SearchResult:
+        await self._job_manager.update_module_status(
+            job_id, module.module_id, module.module_name, ModuleStatus.FAILED, error=error_msg
+        )
+        return SearchResult(
+            module_id=module.module_id,
+            module_name=module.module_name,
+            status=ModuleStatus.FAILED,
+            error=error_msg,
+        )
+
     async def _run_module(
         self,
         job_id: str,
@@ -54,16 +67,7 @@ class AssessmentService:
             )
 
             if raw_result.error:
-                await self._job_manager.update_module_status(
-                    job_id, module.module_id, module.module_name,
-                    ModuleStatus.FAILED, error=raw_result.error,
-                )
-                return SearchResult(
-                    module_id=module.module_id,
-                    module_name=module.module_name,
-                    status=ModuleStatus.FAILED,
-                    error=raw_result.error,
-                )
+                return await self._fail_module(job_id, module, raw_result.error)
 
             if module.skip_llm_parsing:
                 parsed = raw_result.raw_data if isinstance(raw_result.raw_data, dict) else {}
@@ -89,34 +93,11 @@ class AssessmentService:
             )
 
         except asyncio.TimeoutError:
-            error_msg = f"Module timed out after {timeout:.0f}s"
             logger.warning("Module '%s' timed out for job %s", module.module_id, job_id)
-            await self._job_manager.update_module_status(
-                job_id, module.module_id, module.module_name,
-                ModuleStatus.FAILED, error=error_msg,
-            )
-            return SearchResult(
-                module_id=module.module_id,
-                module_name=module.module_name,
-                status=ModuleStatus.FAILED,
-                error=error_msg,
-            )
+            return await self._fail_module(job_id, module, f"Module timed out after {timeout:.0f}s")
         except Exception as exc:
-            error_msg = str(exc)
-            logger.error(
-                "Unexpected error in module '%s' for job %s: %s",
-                module.module_id, job_id, error_msg,
-            )
-            await self._job_manager.update_module_status(
-                job_id, module.module_id, module.module_name,
-                ModuleStatus.FAILED, error=error_msg,
-            )
-            return SearchResult(
-                module_id=module.module_id,
-                module_name=module.module_name,
-                status=ModuleStatus.FAILED,
-                error=error_msg,
-            )
+            logger.error("Unexpected error in module '%s' for job %s: %s", module.module_id, job_id, exc)
+            return await self._fail_module(job_id, module, str(exc))
 
     # ── Registry disambiguation ────────────────────────────────────────────────
 
@@ -162,37 +143,40 @@ class AssessmentService:
             registry_modules = get_registry_modules(jurisdiction)
             registry_warnings: list[str] = []
 
-            if registry_modules:
-                candidates = await self._disambiguate(registry_modules, context)
-
-                if len(candidates) == 0:
-                    await self._job_manager.fail_job(
-                        job_id,
-                        f"No company found in the registry for "
-                        f"name='{request.company_name}', "
-                        f"number='{request.registration_number}'.",
-                    )
-                    return
-
-                if len(candidates) > 1:
-                    logger.info(
-                        "Job %s — ambiguous: %d candidates found", job_id, len(candidates)
-                    )
-                    await self._job_manager.set_job_ambiguous(job_id, candidates)
-                    return
-
-                # Exactly 1 match — enrich context with canonical data
-                match = candidates[0]
-                logger.info(
-                    "Job %s — resolved to '%s' (%s)",
-                    job_id, match.company_name, match.registration_number,
+            if not registry_modules:
+                await self._job_manager.fail_job(
+                    job_id,
+                    f"No registry module available for jurisdiction '{jurisdiction}'.",
                 )
-                registry_warnings = match.warnings or []
-                context = SearchContext(
-                    company_name=match.company_name,
-                    registration_number=match.registration_number,
-                    jurisdiction=match.jurisdiction,
+                return
+
+            candidates = await self._disambiguate(registry_modules, context)
+
+            if len(candidates) == 0:
+                await self._job_manager.fail_job(
+                    job_id,
+                    f"No company found in the registry for "
+                    f"name='{request.company_name}', "
+                    f"number='{request.registration_number}'.",
                 )
+                return
+
+            if len(candidates) > 1:
+                logger.info("Job %s — ambiguous: %d candidates found", job_id, len(candidates))
+                await self._job_manager.set_job_ambiguous(job_id, candidates)
+                return
+
+            match = candidates[0]
+            logger.info(
+                "Job %s — resolved to '%s' (%s)",
+                job_id, match.company_name, match.registration_number,
+            )
+            registry_warnings = match.warnings or []
+            context = SearchContext(
+                company_name=match.company_name,
+                registration_number=match.registration_number,
+                jurisdiction=match.jurisdiction,
+            )
 
             # ── Phase 2: search modules ────────────────────────────────────────
             modules = get_all_modules(jurisdiction)

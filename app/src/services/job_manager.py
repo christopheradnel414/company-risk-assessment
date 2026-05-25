@@ -43,7 +43,7 @@ class _Job:
         )
 
     def to_summary(self) -> JobResponse:
-        """Like to_response() but omits the full result payload — used for list endpoints."""
+        # Like to_response() but omits the full result payload — used for list endpoints.
         return JobResponse(
             job_id=self.job_id,
             status=self.status,

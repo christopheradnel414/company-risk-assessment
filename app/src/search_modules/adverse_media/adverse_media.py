@@ -13,7 +13,6 @@ from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 logger = logging.getLogger(__name__)
 
 _SCHEMA = json.loads((Path(__file__).with_suffix(".schema.json")).read_text())
-_SCHEMA_STR = json.dumps(_SCHEMA, indent=2)
 _LLM_RETRY = 2
 
 _SYSTEM_PROMPT = (
@@ -22,7 +21,7 @@ _SYSTEM_PROMPT = (
     "that strictly matches the schema below. "
     "Each hit must include the real URL and title from the search result — do not invent or omit URLs. "
     "Return ONLY the JSON object, no markdown fences, no explanation.\n\n"
-    f"Schema:\n{_SCHEMA_STR}"
+    f"Schema:\n{json.dumps(_SCHEMA, indent=2)}"
 )
 
 
