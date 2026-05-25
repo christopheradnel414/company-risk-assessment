@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = (
     "You are a company due diligence analyst specialising in adverse media screening. "
-    "Use the web_search tool to research whether the company has been mentioned in "
-    "scam reports, fraud allegations, regulatory actions, lawsuits, or negative media coverage. "
-    "Return ONLY a valid JSON object matching the provided schema — no markdown fences, no explanation."
+    "You will be given exact search queries to run using the web_search tool. "
+    "Run each query, then consolidate the findings into a single JSON object matching the provided schema. "
+    "Return ONLY the JSON object — no markdown fences, no explanation."
 )
 
 
@@ -54,6 +54,9 @@ class AdverseMediaModule(BaseSearchModule):
                             "role": "user",
                             "content": (
                                 f"Research adverse media for: **{context.company_name}**\n\n"
+                                f"Run these two searches in order:\n"
+                                f'1. "{context.company_name}" scam OR fraud OR complaint\n'
+                                f'2. "{context.company_name}" investigation OR lawsuit OR fine OR regulatory\n\n'
                                 f"Return a JSON object strictly matching this schema:\n{schema_str}"
                             ),
                         },
