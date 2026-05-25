@@ -2,8 +2,8 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any
 
+import jsonschema
 from openai import AsyncOpenAI
 
 from app.config import get_settings
@@ -12,14 +12,11 @@ from app.search_modules.base import BaseSearchModule, SearchModuleResult
 
 logger = logging.getLogger(__name__)
 
-_MAX_TOOL_ROUNDS = 5
-
 _SYSTEM_PROMPT = (
     "You are a company due diligence analyst specialising in adverse media screening. "
     "Use the web_search tool to research whether the company has been mentioned in "
     "scam reports, fraud allegations, regulatory actions, lawsuits, or negative media coverage. "
-    "Run 2-3 targeted searches, then return a single JSON object matching the provided schema. "
-    "Return ONLY the JSON object — no markdown fences, no explanation."
+    "Return ONLY a valid JSON object matching the provided schema — no markdown fences, no explanation."
 )
 
 
@@ -44,60 +41,45 @@ class AdverseMediaModule(BaseSearchModule):
         )
 
         schema_str = json.dumps(self.output_schema, indent=2)
-        messages: list[dict[str, Any]] = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"Research adverse media for: **{context.company_name}**\n\n"
-                    f"Return a JSON object strictly matching this schema:\n{schema_str}"
-                ),
-            },
-        ]
+        max_attempts = 1 + settings.llm_parse_retries
+        last_parsed: dict = {}
 
-        try:
-            for _ in range(_MAX_TOOL_ROUNDS):
+        for attempt in range(1, max_attempts + 1):
+            try:
                 response = await client.chat.completions.create(
                     model=settings.openrouter_model,
-                    messages=messages,
-                    tools=[{"type": "openrouter:web_search"}],
-                )
-                choice = response.choices[0]
-                msg = choice.message
-
-                if choice.finish_reason == "stop" or not msg.tool_calls:
-                    return SearchModuleResult(raw_data=_parse_json(msg.content or "{}"))
-                
-                messages.append({
-                    "role": "assistant",
-                    "content": msg.content,
-                    "tool_calls": [
+                    messages=[
+                        {"role": "system", "content": _SYSTEM_PROMPT},
                         {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments,
-                            },
-                        }
-                        for tc in msg.tool_calls
+                            "role": "user",
+                            "content": (
+                                f"Research adverse media for: **{context.company_name}**\n\n"
+                                f"Return a JSON object strictly matching this schema:\n{schema_str}"
+                            ),
+                        },
                     ],
-                })
+                    tools=[{"type": "openrouter:web_search"}],
+                    temperature=0.0,
+                )
+                last_parsed = _parse_json(response.choices[0].message.content or "{}")
+                schema_errors = _validate(last_parsed, self.output_schema)
+                if not schema_errors:
+                    return SearchModuleResult(raw_data=last_parsed)
+                logger.warning(
+                    "Adverse media schema validation failed (attempt %d/%d): %s",
+                    attempt, max_attempts, schema_errors,
+                )
+            except json.JSONDecodeError as exc:
+                logger.warning(
+                    "Adverse media JSON parse failed (attempt %d/%d): %s",
+                    attempt, max_attempts, exc,
+                )
+            except Exception as exc:
+                logger.error("Adverse media search failed for '%s': %s", context.company_name, exc)
+                return SearchModuleResult(error=str(exc))
 
-                for tc in msg.tool_calls:
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "content": "",
-                    })
-
-            return SearchModuleResult(
-                error="Adverse media search did not complete within the allowed tool rounds"
-            )
-
-        except Exception as exc:
-            logger.error("Adverse media search failed for '%s': %s", context.company_name, exc)
-            return SearchModuleResult(error=str(exc))
+        # Return best effort result; assessment service will log remaining schema errors
+        return SearchModuleResult(raw_data=last_parsed)
 
 
 def _parse_json(content: str) -> dict:
@@ -105,3 +87,8 @@ def _parse_json(content: str) -> dict:
     content = re.sub(r"^```(?:json)?\s*\n?", "", content)
     content = re.sub(r"\n?```\s*$", "", content).strip()
     return json.loads(content)
+
+
+def _validate(data: dict, schema: dict) -> list[str]:
+    validator = jsonschema.Draft7Validator(schema)
+    return [e.message for e in sorted(validator.iter_errors(data), key=str)]
