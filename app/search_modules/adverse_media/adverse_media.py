@@ -30,10 +30,8 @@ class AdverseMediaModule(BaseSearchModule):
         "Searches the web for scam reports, fraud allegations, regulatory actions, "
         "lawsuits, and negative media coverage about the company."
     )
-    jurisdictions = None  # global
-
+    jurisdictions = None
     skip_llm_parsing = True
-
     output_schema = json.loads(
         (Path(__file__).with_suffix(".schema.json")).read_text()
     )
@@ -45,17 +43,13 @@ class AdverseMediaModule(BaseSearchModule):
             base_url=settings.openrouter_base_url,
         )
 
-        company = context.company_name or context.registration_number
-        if not company:
-            return SearchModuleResult(error="No company name or registration number provided")
-
         schema_str = json.dumps(self.output_schema, indent=2)
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": _SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": (
-                    f"Research adverse media for: **{company}**\n\n"
+                    f"Research adverse media for: **{context.company_name}**\n\n"
                     f"Return a JSON object strictly matching this schema:\n{schema_str}"
                 ),
             },
@@ -73,10 +67,7 @@ class AdverseMediaModule(BaseSearchModule):
 
                 if choice.finish_reason == "stop" or not msg.tool_calls:
                     return SearchModuleResult(raw_data=_parse_json(msg.content or "{}"))
-
-                # Add assistant turn then acknowledge each tool call so the loop continues.
-                # OpenRouter executes the actual web search server-side; passing empty
-                # content here satisfies the message format while OR injects the results.
+                
                 messages.append({
                     "role": "assistant",
                     "content": msg.content,
@@ -92,6 +83,7 @@ class AdverseMediaModule(BaseSearchModule):
                         for tc in msg.tool_calls
                     ],
                 })
+
                 for tc in msg.tool_calls:
                     messages.append({
                         "role": "tool",
@@ -104,7 +96,7 @@ class AdverseMediaModule(BaseSearchModule):
             )
 
         except Exception as exc:
-            logger.error("Adverse media search failed for '%s': %s", company, exc)
+            logger.error("Adverse media search failed for '%s': %s", context.company_name, exc)
             return SearchModuleResult(error=str(exc))
 
 
