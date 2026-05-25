@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -25,32 +24,24 @@ class LLMService:
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
-    @staticmethod
-    def _parse_llm_json(content: str) -> dict:
-        content = content.strip()
-        content = re.sub(r"^```(?:json)?\s*\n?", "", content)
-        content = re.sub(r"\n?```\s*$", "", content).strip()
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            def _escape_string(m: re.Match) -> str:
-                inner = m.group(0)[1:-1]
-                inner = inner.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
-                return f'"{inner}"'
-            fixed = re.sub(r'"(?:[^"\\]|\\.)*"', _escape_string, content, flags=re.DOTALL)
-            return json.loads(fixed)
-
-    async def _chat(self, system_prompt: str, user_prompt: str) -> dict:
-        """Call the LLM and return parsed JSON."""
+    async def _chat(
+        self, system_prompt: str, user_prompt: str, schema: Optional[dict] = None
+    ) -> dict:
+        response_format = (
+            {"type": "json_schema", "json_schema": {"name": "output", "schema": schema, "strict": True}}
+            if schema
+            else {"type": "json_object"}
+        )
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            response_format={"type": "json_object"},
+            response_format=response_format,
+            temperature=0.0,
         )
-        return self._parse_llm_json(response.choices[0].message.content)
+        return json.loads(response.choices[0].message.content)
 
     # ── Public interface ───────────────────────────────────────────────────────
 
@@ -59,30 +50,17 @@ class LLMService:
         module: BaseSearchModule,
         raw_result: SearchModuleResult,
     ) -> dict:
-        """
-        Ask the LLM to extract structured data from a module's raw output.
-        Returns a dict that may contain an "error" key if parsing fails.
-        """
         if raw_result.error:
             return {"error": raw_result.error}
 
-        schema_instruction = (
-            f"Output a JSON object strictly matching this JSON Schema:\n"
-            f"{json.dumps(module.output_schema, indent=2)}"
-            if module.output_schema
-            else "Extract all relevant information as a structured JSON object."
-        )
-
         user_prompt = (
-            f"Parse the following raw data retrieved from **{module.module_name}** "
-            f"and extract the relevant company information.\n\n"
-            f"{schema_instruction}\n\n"
-            f"Raw data:\n```json\n{json.dumps(raw_result.raw_data, indent=2, default=str)}\n```\n\n"
-            f"Return ONLY valid JSON — no markdown fences, no explanation."
+            f"Parse the following raw data from **{module.module_name}** "
+            f"and extract all relevant company information.\n\n"
+            f"Raw data:\n```\n{json.dumps(raw_result.raw_data, indent=2, default=str)}\n```"
         )
 
         try:
-            return await self._chat(module.system_prompt, user_prompt)
+            return await self._chat(module.system_prompt, user_prompt, schema=module.output_schema)
         except Exception as exc:
             logger.error("LLM parsing failed for module '%s': %s", module.module_id, exc)
             return {"error": f"LLM parsing failed: {exc}"}

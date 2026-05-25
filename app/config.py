@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     # Operational settings
     job_ttl_hours: int = 24
     module_timeout_seconds: int = 90
-    llm_parse_retries: int = 2
 
 
 @lru_cache

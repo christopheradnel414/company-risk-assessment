@@ -67,31 +67,15 @@ class AssessmentService:
 
             if module.skip_llm_parsing:
                 parsed = raw_result.raw_data if isinstance(raw_result.raw_data, dict) else {}
-                schema_errors = self._validate_output(parsed, module.output_schema)
-                if schema_errors:
-                    logger.warning(
-                        "Schema validation failed for module '%s': %s",
-                        module.module_id, schema_errors,
-                    )
             else:
-                max_attempts = 1 + get_settings().llm_parse_retries
-                schema_errors: list[str] = []
-                parsed: Any = {}
-                for attempt in range(1, max_attempts + 1):
-                    parsed = await self._llm_service.parse_module_result(module, raw_result)
-                    schema_errors = self._validate_output(parsed, module.output_schema)
-                    if not schema_errors:
-                        break
-                    if attempt < max_attempts:
-                        logger.warning(
-                            "Schema validation failed for module '%s' (attempt %d/%d), retrying LLM parse: %s",
-                            module.module_id, attempt, max_attempts, schema_errors,
-                        )
-                if schema_errors:
-                    logger.warning(
-                        "Schema validation failed for module '%s' after %d attempt(s): %s",
-                        module.module_id, max_attempts, schema_errors,
-                    )
+                parsed = await self._llm_service.parse_module_result(module, raw_result)
+
+            schema_errors = self._validate_output(parsed, module.output_schema)
+            if schema_errors:
+                logger.warning(
+                    "Schema validation failed for module '%s': %s",
+                    module.module_id, schema_errors,
+                )
 
             await self._job_manager.update_module_status(
                 job_id, module.module_id, module.module_name, ModuleStatus.COMPLETED
