@@ -81,7 +81,6 @@ class AdverseMediaModule(BaseSearchModule):
                 logger.error("Adverse media search failed for '%s': %s", context.company_name, exc)
                 return SearchModuleResult(error=str(exc))
 
-        # Return best effort result; assessment service will log remaining schema errors
         return SearchModuleResult(raw_data=last_parsed)
 
 

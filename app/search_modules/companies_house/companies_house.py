@@ -24,6 +24,25 @@ class CompaniesHouseModule(BaseSearchModule):
 
     _BASE_URL = "https://api.company-information.service.gov.uk"
 
+    def _parse_resp(self, resp) -> dict:
+        if isinstance(resp, Exception):
+            return {"error": str(resp)}
+        try:
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as exc:
+            return {"error": f"HTTP {exc.response.status_code}"}
+
+    def _filter(self, data, schema: dict, defs: dict):
+        if "$ref" in schema:
+            schema = defs.get(schema["$ref"].split("/")[-1], {})
+        if schema.get("type") == "object" and isinstance(data, dict) and "error" not in data:
+            props = schema.get("properties", {})
+            return {k: self._filter(v, props[k], defs) for k, v in data.items() if k in props}
+        if schema.get("type") == "array" and isinstance(data, list):
+            return [self._filter(item, schema.get("items", {}), defs) for item in data]
+        return data
+
     async def fetch(self, context: SearchContext) -> SearchModuleResult:
         settings = get_settings()
         api_key = settings.companies_house_api_key
@@ -32,43 +51,40 @@ class CompaniesHouseModule(BaseSearchModule):
             return SearchModuleResult(
                 error="Companies House API key not configured. Set COMPANIES_HOUSE_API_KEY in .env"
             )
+        if not context.registration_number:
+            return SearchModuleResult(error="Company registration number is required")
 
         try:
             async with httpx.AsyncClient(auth=(api_key, ""), timeout=30.0) as client:
-                company_number = context.registration_number
-
-                if not company_number:
-                    return SearchModuleResult(error="Company registration number is required")
-
-                profile_resp, officers_resp, filings_resp, psc_resp = await asyncio.gather(
-                    client.get(f"{self._BASE_URL}/company/{company_number}"),
-                    client.get(f"{self._BASE_URL}/company/{company_number}/officers"),
-                    client.get(
-                        f"{self._BASE_URL}/company/{company_number}/filing-history",
-                        params={"items_per_page": 15},
-                    ),
-                    client.get(
-                        f"{self._BASE_URL}/company/{company_number}"
-                        "/persons-with-significant-control"
-                    ),
+                base = f"{self._BASE_URL}/company/{context.registration_number}"
+                responses = await asyncio.gather(
+                    client.get(base),
+                    client.get(f"{base}/officers"),
+                    client.get(f"{base}/filing-history", params={"items_per_page": 15}),
+                    client.get(f"{base}/persons-with-significant-control"),
                     return_exceptions=True,
                 )
+                raw = dict(zip(
+                    ("profile", "officers", "filing_history", "persons_with_significant_control"),
+                    (self._parse_resp(r) for r in responses),
+                ))
 
-                raw: dict = {}
-                for label, resp in [
-                    ("profile", profile_resp),
-                    ("officers", officers_resp),
-                    ("filing_history", filings_resp),
-                    ("persons_with_significant_control", psc_resp),
-                ]:
-                    if isinstance(resp, Exception):
-                        raw[label] = {"error": str(resp)}
-                    else:
-                        try:
-                            resp.raise_for_status()
-                            raw[label] = resp.json()
-                        except httpx.HTTPStatusError as exc:
-                            raw[label] = {"error": f"HTTP {exc.response.status_code}"}
+                appt_officers = []
+                for officer in (raw.get("officers") or {}).get("items") or []:
+                    if path := ((officer.get("links") or {}).get("officer") or {}).get("appointments"):
+                        appt_officers.append((officer, path))
+
+                if appt_officers:
+                    appt_responses = await asyncio.gather(
+                        *(client.get(f"{self._BASE_URL}{path}") for _, path in appt_officers),
+                        return_exceptions=True,
+                    )
+                    for (officer, _), appt_resp in zip(appt_officers, appt_responses):
+                        officer["appointments"] = self._parse_resp(appt_resp)
+
+                defs = self.output_schema.get("definitions", {})
+                props = self.output_schema.get("properties", {})
+                raw = {k: self._filter(v, props.get(k, {}), defs) for k, v in raw.items()}
 
                 return SearchModuleResult(raw_data=raw)
 
