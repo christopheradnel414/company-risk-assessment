@@ -3,7 +3,7 @@ from typing import Any, ClassVar, List, Optional
 
 from pydantic import BaseModel
 
-from app.models.context import SearchContext
+from app.src.models.context import SearchContext
 
 
 class SearchModuleResult(BaseModel):

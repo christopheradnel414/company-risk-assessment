@@ -1,9 +1,9 @@
 from typing import List, Type
 
-from app.search_modules.adverse_media.adverse_media import AdverseMediaModule
-from app.search_modules.base import BaseSearchModule
-from app.search_modules.companies_house.companies_house import CompaniesHouseModule
-from app.search_modules.icij_offshore_leaks.icij_offshore_leaks import ICIJOffshoreLeaksModule
+from app.src.search_modules.adverse_media.adverse_media import AdverseMediaModule
+from app.src.search_modules.base import BaseSearchModule
+from app.src.search_modules.companies_house.companies_house import CompaniesHouseModule
+from app.src.search_modules.icij_offshore_leaks.icij_offshore_leaks import ICIJOffshoreLeaksModule
 
 ALL_SEARCH_MODULES: List[Type[BaseSearchModule]] = [
     CompaniesHouseModule,      # GB only

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import httpx
 
-from app.models.context import SearchContext
-from app.search_modules.base import BaseSearchModule, SearchModuleResult
+from app.src.models.context import SearchContext
+from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 
 logger = logging.getLogger(__name__)
 

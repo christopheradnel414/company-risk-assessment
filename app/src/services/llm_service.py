@@ -4,9 +4,9 @@ from typing import Optional
 
 from openai import AsyncOpenAI
 
-from app.config import get_settings
-from app.models.response import RiskSummary, SearchResult
-from app.search_modules.base import BaseSearchModule, SearchModuleResult
+from app.src.config import get_settings
+from app.src.models.response import RiskSummary, SearchResult
+from app.src.search_modules.base import BaseSearchModule, SearchModuleResult
 
 logger = logging.getLogger(__name__)
 

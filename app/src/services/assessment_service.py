@@ -4,16 +4,16 @@ from typing import Any, Optional
 
 import jsonschema
 
-from app.config import get_settings
-from app.models.context import SearchContext
-from app.models.request import AssessmentRequest
-from app.models.response import AssessmentResult, ModuleStatus, SearchResult
-from app.registry_modules.base import BaseRegistryModule
-from app.registry_modules.modules import get_registry_modules
-from app.search_modules.base import BaseSearchModule
-from app.search_modules.modules import get_all_modules
-from app.services.job_manager import JobManager
-from app.services.llm_service import LLMService
+from app.src.config import get_settings
+from app.src.models.context import SearchContext
+from app.src.models.request import AssessmentRequest
+from app.src.models.response import AssessmentResult, ModuleStatus, SearchResult
+from app.src.registry_modules.base import BaseRegistryModule
+from app.src.registry_modules.modules import get_registry_modules
+from app.src.search_modules.base import BaseSearchModule
+from app.src.search_modules.modules import get_all_modules
+from app.src.services.job_manager import JobManager
+from app.src.services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 

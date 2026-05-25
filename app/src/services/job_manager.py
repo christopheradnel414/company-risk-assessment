@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from app.models.request import AssessmentRequest
-from app.models.response import (
+from app.src.models.request import AssessmentRequest
+from app.src.models.response import (
     AssessmentResult,
     CandidateCompany,
     JobResponse,

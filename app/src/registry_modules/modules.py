@@ -1,7 +1,7 @@
 from typing import List, Type
 
-from app.registry_modules.base import BaseRegistryModule
-from app.registry_modules.companies_house.companies_house import CompaniesHouseRegistryModule
+from app.src.registry_modules.base import BaseRegistryModule
+from app.src.registry_modules.companies_house.companies_house import CompaniesHouseRegistryModule
 
 ALL_REGISTRY_CLASSES: List[Type[BaseRegistryModule]] = [
     CompaniesHouseRegistryModule,   # GB only

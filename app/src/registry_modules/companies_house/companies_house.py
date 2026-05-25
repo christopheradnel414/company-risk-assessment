@@ -3,10 +3,10 @@ from typing import List, Optional
 
 import httpx
 
-from app.config import get_settings
-from app.models.context import SearchContext
-from app.models.response import CandidateCompany
-from app.registry_modules.base import BaseRegistryModule
+from app.src.config import get_settings
+from app.src.models.context import SearchContext
+from app.src.models.response import CandidateCompany
+from app.src.registry_modules.base import BaseRegistryModule
 
 logger = logging.getLogger(__name__)
 

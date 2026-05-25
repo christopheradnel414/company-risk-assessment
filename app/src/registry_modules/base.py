@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, ClassVar, List, Optional
 
-from app.models.context import SearchContext
+from app.src.models.context import SearchContext
 
 if TYPE_CHECKING:
-    from app.models.response import CandidateCompany
+    from app.src.models.response import CandidateCompany
 
 
 class BaseRegistryModule(ABC):

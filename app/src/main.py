@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import assessment, jobs
-from app.config import get_settings
-from app.services.assessment_service import AssessmentService
-from app.services.job_manager import JobManager
-from app.services.llm_service import LLMService
+from app.src.api.routes import jobs
+from app.src.config import get_settings
+from app.src.services.assessment_service import AssessmentService
+from app.src.services.job_manager import JobManager
+from app.src.services.llm_service import LLMService
+from app.src.api.routes import assessment
 
 logging.basicConfig(
     level=logging.INFO,
@@ -128,7 +129,7 @@ async def list_modules():
     Returns metadata for every registered search module including
     which jurisdictions each module applies to.
     """
-    from app.search_modules.modules import ALL_SEARCH_MODULES
+    from app.src.search_modules.modules import ALL_SEARCH_MODULES
 
     return [
         {

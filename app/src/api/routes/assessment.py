@@ -1,9 +1,9 @@
 from fastapi import APIRouter, BackgroundTasks, Request
 
-from app.models.request import AssessmentRequest
-from app.models.response import CreateAssessmentResponse
-from app.services.assessment_service import AssessmentService
-from app.services.job_manager import JobManager
+from app.src.models.request import AssessmentRequest
+from app.src.models.response import CreateAssessmentResponse
+from app.src.services.assessment_service import AssessmentService
+from app.src.services.job_manager import JobManager
 
 router = APIRouter(prefix="/assessments", tags=["Assessments"])
 
