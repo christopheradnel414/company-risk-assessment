@@ -23,13 +23,10 @@ class LLMService:
         )
 
     async def _chat(
-        self, system_prompt: str, user_prompt: str, schema: Optional[dict] = None, temperature: float = 0.0
+        self, system_prompt: str, user_prompt: str, schema: dict = None, temperature: float = 0.0
     ) -> dict:
-        response_format = (
-            {"type": "json_schema", "json_schema": {"name": "output", "schema": schema, "strict": True}}
-            if schema
-            else {"type": "json_object"}
-        )
+        response_format = {"type": "json_schema", "json_schema": {"name": "output", "schema": schema, "strict": True}}
+        
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[
@@ -106,7 +103,6 @@ class LLMService:
         jurisdiction: str,
         search_results: list[SearchResult],
     ) -> RiskSummary:
-        """Synthesise all module results into a RiskSummary. Falls back to unknown on failure."""
         results_payload = [
             {
                 "module": r.module_name,
