@@ -42,12 +42,6 @@ function ModuleResultCard({ result }: { result: SearchResult }) {
           ) : (
             <span style={{ fontSize: 13, color: 'var(--text-light)' }}>No data</span>
           )}
-          {result.schema_errors && result.schema_errors.length > 0 && (
-            <div className="schema-warnings">
-              <div className="schema-warnings-title">Schema warnings:</div>
-              {result.schema_errors.map((e, i) => <div key={i}>{e}</div>)}
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -163,6 +163,18 @@ class AssessmentService:
                     )
                 return
 
+            if len(candidates) > 1 and request.company_name:
+                exact = [
+                    c for c in candidates
+                    if c.company_name.strip().lower() == request.company_name.strip().lower()
+                ]
+                if len(exact) == 1:
+                    logger.info(
+                        "Job %s — resolved ambiguity via exact name match: '%s'",
+                        job_id, exact[0].company_name,
+                    )
+                    candidates = exact
+
             if len(candidates) > 1:
                 logger.info("Job %s — ambiguous: %d candidates found", job_id, len(candidates))
                 await self._job_manager.set_job_ambiguous(job_id, candidates)

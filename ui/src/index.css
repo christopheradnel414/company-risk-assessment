@@ -212,12 +212,27 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.form-field input:focus {
+.form-field input:focus,
+.form-field select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .form-field input::placeholder { color: var(--text-light); }
+
+.form-field select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+  cursor: pointer;
+}
 
 .btn-submit {
   width: 100%;
