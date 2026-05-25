@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AssessmentRequest, CandidateCompany, JobResponse } from './types'
-import { fetchJob, fetchJobs, submitAssessment } from './api'
+import { AuthError, fetchJob, fetchJobs, submitAssessment } from './api'
 import SubmitForm from './components/SubmitForm'
 import JobList from './components/JobList'
 import JobDetail from './components/JobDetail'
+import ApiKeySection from './components/ApiKeySection'
 import './App.css'
 
 const ACTIVE_STATUSES = new Set<string>(['pending', 'running'])
@@ -35,6 +36,7 @@ export default function App() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [authError, setAuthError] = useState(false)
 
   const jobRef = useRef<JobResponse | null>(null)
   jobRef.current = selectedJob
@@ -45,8 +47,10 @@ export default function App() {
     const tick = async () => {
       try {
         const list = await fetchJobs()
-        if (alive) setJobs(list)
-      } catch { /* ignore — backend may be starting up */ }
+        if (alive) { setJobs(list); setAuthError(false) }
+      } catch (e) {
+        if (alive && e instanceof AuthError) setAuthError(true)
+      }
     }
     tick()
     const id = setInterval(tick, LIST_POLL_MS)
@@ -118,9 +122,16 @@ export default function App() {
             selectedJobId={selectedJobId}
             onSelect={setSelectedJobId}
           />
+          <ApiKeySection />
         </aside>
 
         <main className="main-content">
+          {authError && (
+            <div className="auth-error-banner">
+              <span className="auth-error-icon">⚠</span>
+              <span><strong>401 Unauthorized</strong> — API key is invalid or missing. Update it in the sidebar.</span>
+            </div>
+          )}
           {selectedJob
             ? <JobDetail job={selectedJob} onSelectCandidate={handleSelectCandidate} />
             : selectedJobId
