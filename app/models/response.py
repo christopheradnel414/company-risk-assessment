@@ -59,10 +59,10 @@ class SearchResult(BaseModel):
 
 class RiskSummary(BaseModel):
     overall_risk_level: Literal["high", "medium", "low", "unknown"] = Field(
-        description="Aggregated risk level across all search findings"
+        description="Aggregated risk level derived from risk_score: 0-29=low, 30-59=medium, 60-100=high"
     )
-    negative_indicators: List[str] = Field(description="Specific concerning indicators identified")
-    positive_indicators: List[str] = Field(description="Factors that reduce risk or indicate legitimacy")
+    risk_score: int = Field(description="Numeric risk score 0 (no risk) to 100 (maximum risk)")
+    summary: str = Field(description="2-3 sentence narrative conclusion of the overall risk assessment")
 
 
 # ── Final assessment result ───────────────────────────────────────────────────

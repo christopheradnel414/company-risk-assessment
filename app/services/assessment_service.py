@@ -7,7 +7,7 @@ import jsonschema
 from app.config import get_settings
 from app.models.context import SearchContext
 from app.models.request import AssessmentRequest
-from app.models.response import AssessmentResult, ModuleStatus, RiskSummary, SearchResult
+from app.models.response import AssessmentResult, ModuleStatus, SearchResult
 from app.registry_modules.base import BaseRegistryModule
 from app.registry_modules.modules import get_registry_modules
 from app.search_modules.base import BaseSearchModule
@@ -204,17 +204,11 @@ class AssessmentService:
 
             all_results = await self._gather_modules(job_id, modules, context)
 
-            #TODO: This is commented out for development of the modules first to save API cost
-            # risk_summary = await self._llm_service.synthesize_results(
-            #     company_name=request.company_name,
-            #     registration_number=request.registration_number,
-            #     jurisdiction=jurisdiction,
-            #     search_results=all_results,
-            # )
-            risk_summary=RiskSummary(
-                overall_risk_level='unknown',
-                negative_indicators=[],
-                positive_indicators=[]
+            risk_summary = await self._llm_service.synthesize_results(
+                company_name=request.company_name,
+                registration_number=request.registration_number,
+                jurisdiction=jurisdiction,
+                search_results=all_results,
             )
 
             await self._job_manager.complete_job(

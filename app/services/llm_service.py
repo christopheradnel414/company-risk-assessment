@@ -22,10 +22,8 @@ class LLMService:
             base_url=settings.openrouter_base_url
         )
 
-    # ── Internal helpers ───────────────────────────────────────────────────────
-
     async def _chat(
-        self, system_prompt: str, user_prompt: str, schema: Optional[dict] = None
+        self, system_prompt: str, user_prompt: str, schema: Optional[dict] = None, temperature: float = 0.0
     ) -> dict:
         response_format = (
             {"type": "json_schema", "json_schema": {"name": "output", "schema": schema, "strict": True}}
@@ -39,11 +37,9 @@ class LLMService:
                 {"role": "user", "content": user_prompt},
             ],
             response_format=response_format,
-            temperature=0.0,
+            temperature=temperature,
         )
         return json.loads(response.choices[0].message.content)
-
-    # ── Public interface ───────────────────────────────────────────────────────
 
     async def parse_module_result(
         self,
@@ -65,17 +61,52 @@ class LLMService:
             logger.error("LLM parsing failed for module '%s': %s", module.module_id, exc)
             return {"error": f"LLM parsing failed: {exc}"}
 
+    _SYNTHESIS_SCHEMA = {
+        "type": "object",
+        "required": ["risk_score", "summary"],
+        "additionalProperties": False,
+        "properties": {
+            "risk_score": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "description": (
+                    "Overall risk score 0–100. "
+                    "Use these anchors consistently: "
+                    "0–9 = clean (active company, no flags anywhere); "
+                    "10–29 = low (minor or unverified concerns); "
+                    "30–59 = medium (notable concerns — dissolved status, unresolved complaints, "
+                    "adverse media without confirmed fraud); "
+                    "60–79 = high (confirmed fraud/scam reports, regulatory action, lawsuit, "
+                    "significant adverse media); "
+                    "80–100 = critical (confirmed ICIJ leak appearance, criminal prosecution, "
+                    "multiple serious flags)."
+                ),
+            },
+            "summary": {
+                "type": "string",
+                "description": "2–3 sentence narrative conclusion of overall risk",
+            },
+        },
+    }
+
+    _SYNTHESIS_SYSTEM_PROMPT = (
+        "You are a senior risk analyst specialising in company due diligence. "
+        "You will receive structured findings from multiple independent search modules. "
+        "Your task is to synthesise these into a consistent, evidence-based risk score. "
+        "Apply the scoring anchors literally and consistently — the same findings should "
+        "always produce the same score. Only flag an indicator if there is explicit evidence "
+        "for it in the module data; do not speculate."
+    )
+
     async def synthesize_results(
         self,
         company_name: Optional[str],
         registration_number: Optional[str],
         jurisdiction: str,
         search_results: list[SearchResult],
-    ) -> tuple[RiskSummary, str]:
-        """
-        Generate an overall risk assessment from all completed module results.
-        Returns RiskSummary.
-        """
+    ) -> RiskSummary:
+        """Synthesise all module results into a RiskSummary. Falls back to unknown on failure."""
         results_payload = [
             {
                 "module": r.module_name,
@@ -86,46 +117,43 @@ class LLMService:
             for r in search_results
         ]
 
-        system_prompt = (
-            "You are a senior risk analyst specialising in company due diligence. "
-            "Based on research findings from multiple sources, produce a comprehensive, "
-            "evidence-based risk assessment in JSON format."
-        )
-
-        output_schema = {
-            "overall_risk_level": "high | medium | low | unknown",
-            "nagative_indicators": ["specific concerning indicators with brief context"],
-            "positive_indicators": ["factors that reduce risk or confirm legitimacy"],
-        }
+        completed = sum(1 for r in search_results if r.status == "completed")
+        failed = sum(1 for r in search_results if r.status == "failed")
 
         user_prompt = (
-            f"Perform a comprehensive risk assessment for:\n"
-            f"  Company Name: {company_name or 'Not provided'}\n"
-            f"  Registration Number: {registration_number or 'Not provided'}\n"
+            f"Assess risk for:\n"
+            f"  Company: {company_name or 'Not provided'}\n"
+            f"  Registration number: {registration_number or 'Not provided'}\n"
             f"  Jurisdiction: {jurisdiction}\n\n"
-            f"Search findings from {len(search_results)} modules:\n"
+            f"Module results ({completed} completed, {failed} failed):\n"
             f"```json\n{json.dumps(results_payload, indent=2, default=str)}\n```\n\n"
-            f"Return a JSON object matching this structure:\n"
-            f"{json.dumps(output_schema, indent=2)}\n\n"
-            f"If critical data is missing or modules failed, reflect this uncertainty "
-            f"in your and risk level."
+            f"Apply the scoring anchors from the schema description exactly. "
+            f"If most modules failed and findings are unavailable, set risk_score=50 "
+            f"and note the data gap in the summary."
         )
 
         try:
-            result = await self._chat(system_prompt, user_prompt)
-
-            risk_summary = RiskSummary(
-                overall_risk_level=result.get("overall_risk_level", "unknown"),
-                negative_indicators=result.get("negative_indicators", []),
-                positive_indicators=result.get("positive_indicators", [])
+            result = await self._chat(
+                self._SYNTHESIS_SYSTEM_PROMPT,
+                user_prompt,
+                schema=self._SYNTHESIS_SCHEMA,
             )
-            return risk_summary
-
+            score = result["risk_score"]
+            if score < 30:
+                level = "low"
+            elif score < 60:
+                level = "medium"
+            else:
+                level = "high"
+            return RiskSummary(
+                overall_risk_level=level,
+                risk_score=score,
+                summary=result.get("summary", ""),
+            )
         except Exception as exc:
             logger.error("LLM synthesis failed: %s", exc)
-            fallback = RiskSummary(
+            return RiskSummary(
                 overall_risk_level="unknown",
-                negative_indicators=[],
-                positive_indicators=[]
+                risk_score=50,
+                summary=f"Risk synthesis failed: {exc}",
             )
-            return fallback, f"Risk synthesis failed: {exc}"
