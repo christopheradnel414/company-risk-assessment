@@ -31,7 +31,7 @@ class AssessmentService:
     async def _fail_module(
         self, job_id: str, module: BaseSearchModule, error_msg: str
     ) -> SearchResult:
-        await self._job_manager.update_module_status(
+        self._job_manager.update_module_status(
             job_id, module.module_id, module.module_name, ModuleStatus.FAILED, error=error_msg
         )
         result = SearchResult(
@@ -40,7 +40,7 @@ class AssessmentService:
             status=ModuleStatus.FAILED,
             error=error_msg,
         )
-        await self._job_manager.add_module_result(job_id, result)
+        self._job_manager.add_module_result(job_id, result)
         return result
 
     async def _run_module(
@@ -51,7 +51,7 @@ class AssessmentService:
     ) -> SearchResult:
         timeout = float(get_settings().module_timeout_seconds)
 
-        await self._job_manager.update_module_status(
+        self._job_manager.update_module_status(
             job_id, module.module_id, module.module_name, ModuleStatus.RUNNING
         )
 
@@ -78,7 +78,7 @@ class AssessmentService:
                     module.module_id, schema_errors,
                 )
 
-            await self._job_manager.update_module_status(
+            self._job_manager.update_module_status(
                 job_id, module.module_id, module.module_name, ModuleStatus.COMPLETED
             )
             result = SearchResult(
@@ -88,7 +88,7 @@ class AssessmentService:
                 data=parsed,
                 schema_errors=schema_errors or None,
             )
-            await self._job_manager.add_module_result(job_id, result)
+            self._job_manager.add_module_result(job_id, result)
             return result
 
         except asyncio.TimeoutError:
@@ -124,7 +124,7 @@ class AssessmentService:
 
     async def run_assessment(self, job_id: str, request: AssessmentRequest) -> None:
         try:
-            await self._job_manager.set_job_running(job_id)
+            self._job_manager.set_job_running(job_id)
 
             jurisdiction = request.jurisdiction
             context = SearchContext(
@@ -137,7 +137,7 @@ class AssessmentService:
             registry_warnings: list[str] = []
 
             if not registry_modules:
-                await self._job_manager.fail_job(
+                self._job_manager.fail_job(
                     job_id,
                     f"No registry module available for jurisdiction '{jurisdiction}'.",
                 )
@@ -147,12 +147,12 @@ class AssessmentService:
 
             if len(candidates) == 0:
                 if registry_errors:
-                    await self._job_manager.fail_job(
+                    self._job_manager.fail_job(
                         job_id,
                         f"Registry search failed: {'; '.join(registry_errors)}",
                     )
                 else:
-                    await self._job_manager.fail_job(
+                    self._job_manager.fail_job(
                         job_id,
                         f"No company found in the registry for "
                         f"name='{request.company_name}', "
@@ -174,7 +174,7 @@ class AssessmentService:
 
             if len(candidates) > 1:
                 logger.info("Job %s — ambiguous: %d candidates found", job_id, len(candidates))
-                await self._job_manager.set_job_ambiguous(job_id, candidates)
+                self._job_manager.set_job_ambiguous(job_id, candidates)
                 return
 
             match = candidates[0]
@@ -188,22 +188,20 @@ class AssessmentService:
                 registration_number=match.registration_number,
                 jurisdiction=match.jurisdiction,
             )
-            await self._job_manager.set_resolved_context(job_id, context)
+            self._job_manager.set_resolved_context(job_id, context)
 
             modules = get_all_modules(jurisdiction)
 
-            await asyncio.gather(*[
+            for module in modules:
                 self._job_manager.update_module_status(
                     job_id, module.module_id, module.module_name, ModuleStatus.PENDING
                 )
-                for module in modules
-            ])
 
             all_results = await self._gather_search_modules(job_id, modules, context)
 
             if all(r.status == ModuleStatus.FAILED for r in all_results):
                 failed_names = ", ".join(r.module_name for r in all_results)
-                await self._job_manager.fail_job(
+                self._job_manager.fail_job(
                     job_id, f"All search modules failed: {failed_names}"
                 )
                 return
@@ -215,7 +213,7 @@ class AssessmentService:
                 search_results=all_results,
             )
 
-            await self._job_manager.complete_job(
+            self._job_manager.complete_job(
                 job_id,
                 AssessmentResult(
                     company_name=match.company_name,
@@ -228,7 +226,7 @@ class AssessmentService:
 
         except Exception as exc:
             logger.error("Assessment job %s failed with unhandled error: %s", job_id, exc)
-            await self._job_manager.fail_job(job_id, str(exc))
+            self._job_manager.fail_job(job_id, str(exc))
 
     async def _gather_search_modules(
         self,
