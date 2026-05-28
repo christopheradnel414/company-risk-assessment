@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import type { JobResponse } from '../types'
+import type { JobSummary } from '../types'
 
 interface Props {
-  jobs: JobResponse[]
+  jobs: JobSummary[]
   selectedJobId: string | null
   onSelect: (id: string) => void
 }
@@ -19,12 +19,12 @@ function relativeTime(iso: string): string {
   return `${Math.floor(m / 60)}h ago`
 }
 
-function jobDisplayName(job: JobResponse): string {
+function jobDisplayName(job: JobSummary): string {
   const ctx = job.resolved_context ?? job.query
   return ctx.company_name ?? ctx.registration_number ?? job.job_id.slice(0, 8).toUpperCase()
 }
 
-function jobSubtitle(job: JobResponse): string {
+function jobSubtitle(job: JobSummary): string {
   const ctx = job.resolved_context ?? job.query
   return [ctx.jurisdiction, ctx.registration_number].filter(Boolean).join(' · ')
 }

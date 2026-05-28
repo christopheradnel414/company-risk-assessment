@@ -1,4 +1,4 @@
-import type { AssessmentRequest, JobResponse } from './types'
+import type { AssessmentRequest, JobResponse, JobSummary } from './types'
 
 const BASE = '/api/v1'
 
@@ -45,7 +45,7 @@ export async function fetchJob(jobId: string): Promise<JobResponse> {
   return res.json()
 }
 
-export async function fetchJobs(): Promise<JobResponse[]> {
+export async function fetchJobs(): Promise<JobSummary[]> {
   const res = await fetch(`${BASE}/jobs`, { headers: authHeaders() })
   checkAuth(res)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)

@@ -23,7 +23,7 @@ def _assessment_service(request: Request) -> AssessmentService:
     summary="Submit a company for background check",
     description="Submit a company for a full background check. The assessment runs asynchronously in the background, allowing you to return immediately and poll for progress.",
 )
-async def create_assessment(
+def create_assessment(
     payload: AssessmentRequest,
     background_tasks: BackgroundTasks,
     request: Request,

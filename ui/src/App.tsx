@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AssessmentRequest, CandidateCompany, JobResponse } from './types'
+import type { AssessmentRequest, CandidateCompany, JobResponse, JobSummary } from './types'
 import { AuthError, fetchJob, fetchJobs, submitAssessment } from './api'
 import SubmitForm from './components/SubmitForm'
 import JobList from './components/JobList'
@@ -32,7 +32,7 @@ function JobLoadingState() {
 }
 
 export default function App() {
-  const [jobs, setJobs] = useState<JobResponse[]>([])
+  const [jobs, setJobs] = useState<JobSummary[]>([])
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)

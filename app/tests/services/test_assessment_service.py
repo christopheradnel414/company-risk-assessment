@@ -61,7 +61,7 @@ class MockSearchModule(BaseSearchModule):
     description = "A mock search module for testing"
     output_schema = {"type": "object", "additionalProperties": True}
 
-    async def fetch(self, context: SearchContext) -> SearchModuleResult:
+    async def fetch(self, _context: SearchContext) -> SearchModuleResult:
         return SearchModuleResult(raw_data={})
 
 
@@ -256,8 +256,12 @@ class TestRunModule:
     async def test_timeout_marks_module_failed(self, assessment_service, search_context):
         module = MockSearchModule()
         module.fetch = AsyncMock(return_value=SearchModuleResult(raw_data={}))
-        with patch("app.src.services.assessment_service.asyncio.wait_for",
-                   side_effect=asyncio.TimeoutError()):
+
+        def _timeout(coro, *args, **kwargs):
+            coro.close()
+            raise asyncio.TimeoutError()
+
+        with patch("app.src.services.assessment_service.asyncio.wait_for", side_effect=_timeout):
             result = await self._run(assessment_service, module, search_context)
 
         assert result.status == ModuleStatus.FAILED

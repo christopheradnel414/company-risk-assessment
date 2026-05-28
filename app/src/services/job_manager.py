@@ -10,6 +10,7 @@ from app.src.models.response import (
     CandidateCompany,
     JobResponse,
     JobStatus,
+    JobSummary,
     ModuleStatus,
     SearchModuleProgress,
     SearchResult,
@@ -54,9 +55,8 @@ class _Job:
             error=self.error,
         )
 
-    def to_summary(self) -> JobResponse:
-        # Like to_response() but omits the full result payload — used for list endpoints.
-        return JobResponse(
+    def to_summary(self) -> JobSummary:
+        return JobSummary(
             job_id=self.job_id,
             status=self.status,
             created_at=self.created_at,
@@ -66,7 +66,6 @@ class _Job:
             resolved_context=self.resolved_context,
             progress=list(self.module_statuses.values()),
             candidates=self.candidates,
-            final_assessment_result=None,
             error=self.error,
         )
 

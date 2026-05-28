@@ -48,7 +48,7 @@ export interface SearchContext {
   jurisdiction: string
 }
 
-export interface JobResponse {
+export interface JobSummary {
   job_id: string
   status: JobStatus
   created_at: string
@@ -57,10 +57,13 @@ export interface JobResponse {
   query: SearchContext
   resolved_context: SearchContext | null
   progress: SearchModuleProgress[]
-  finished_module_results: SearchResult[]
   candidates: CandidateCompany[] | null
-  final_assessment_result: AssessmentResult | null
   error: string | null
+}
+
+export interface JobResponse extends JobSummary {
+  finished_module_results: SearchResult[]
+  final_assessment_result: AssessmentResult | null
 }
 
 export interface AssessmentRequest {

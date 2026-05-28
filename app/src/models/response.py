@@ -68,7 +68,7 @@ class AssessmentResult(BaseModel):
     warnings: List[str]
 
 
-class JobResponse(BaseModel):
+class JobSummary(BaseModel):
     job_id: str
     status: JobStatus
     created_at: datetime
@@ -83,20 +83,23 @@ class JobResponse(BaseModel):
     progress: List[SearchModuleProgress] = Field(
         description="Status of each individual search module"
     )
-    finished_module_results: List[SearchResult] = Field(
-        default_factory=list,
-        description="Parsed results from each completed module — populated incrementally as modules finish",
-    )
     candidates: Optional[List[CandidateCompany]] = Field(
         None,
         description="Ambiguous registry matches — populated when status is 'ambiguous'. "
                     "Resubmit with registration_number to disambiguate.",
     )
-    final_assessment_result: Optional[AssessmentResult] = Field(
-        None, description="Final assessment result — populated once status is 'completed'"
-    )
     error: Optional[str] = Field(
         None, description="Error message — populated when status is 'failed'"
+    )
+
+
+class JobResponse(JobSummary):
+    finished_module_results: List[SearchResult] = Field(
+        default_factory=list,
+        description="Parsed results from each completed module — populated incrementally as modules finish",
+    )
+    final_assessment_result: Optional[AssessmentResult] = Field(
+        None, description="Final assessment result — populated once status is 'completed'"
     )
 
 
