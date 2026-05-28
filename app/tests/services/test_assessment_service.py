@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -16,13 +16,13 @@ from app.src.services.assessment_service import AssessmentService
 
 def _make_job_manager():
     jm = MagicMock()
-    jm.set_job_running = AsyncMock()
-    jm.fail_job = AsyncMock()
-    jm.set_job_ambiguous = AsyncMock()
-    jm.set_resolved_context = AsyncMock()
-    jm.update_module_status = AsyncMock()
-    jm.add_module_result = AsyncMock()
-    jm.complete_job = AsyncMock()
+    jm.set_job_running = Mock()
+    jm.fail_job = Mock()
+    jm.set_job_ambiguous = Mock()
+    jm.set_resolved_context = Mock()
+    jm.update_module_status = Mock()
+    jm.add_module_result = Mock()
+    jm.complete_job = Mock()
     return jm
 
 
@@ -119,7 +119,7 @@ class TestRunAssessment:
     async def test_no_registry_modules_fails_job(self, _, assessment_service, job_manager):
         await assessment_service.run_assessment("job-1", _make_request(jurisdiction="XX"))
 
-        job_manager.fail_job.assert_awaited_once()
+        job_manager.fail_job.assert_called_once()
         _, error_msg = job_manager.fail_job.call_args[0]
         assert "No registry module available for jurisdiction 'XX'" in error_msg
 
@@ -132,7 +132,7 @@ class TestRunAssessment:
 
         await assessment_service.run_assessment("job-1", _make_request())
 
-        job_manager.fail_job.assert_awaited_once()
+        job_manager.fail_job.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("app.src.services.assessment_service.get_registry_modules")
@@ -143,7 +143,7 @@ class TestRunAssessment:
 
         await assessment_service.run_assessment("job-1", _make_request())
 
-        job_manager.fail_job.assert_awaited_once()
+        job_manager.fail_job.assert_called_once()
         _, error_msg = job_manager.fail_job.call_args[0]
         assert "API down" in error_msg
 
@@ -159,8 +159,8 @@ class TestRunAssessment:
 
         await assessment_service.run_assessment("job-1", _make_request(company_name="Acme"))
 
-        job_manager.set_job_ambiguous.assert_awaited_once()
-        job_manager.complete_job.assert_not_awaited()
+        job_manager.set_job_ambiguous.assert_called_once()
+        job_manager.complete_job.assert_not_called()
 
     @pytest.mark.asyncio
     @patch("app.src.services.assessment_service.get_all_modules")
@@ -181,8 +181,8 @@ class TestRunAssessment:
             mock_settings.return_value.module_timeout_seconds = 30
             await assessment_service.run_assessment("job-1", _make_request(company_name="Acme Ltd"))
 
-        job_manager.set_job_ambiguous.assert_not_awaited()
-        job_manager.complete_job.assert_awaited_once()
+        job_manager.set_job_ambiguous.assert_not_called()
+        job_manager.complete_job.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("app.src.services.assessment_service.get_all_modules")
@@ -200,8 +200,8 @@ class TestRunAssessment:
             mock_settings.return_value.module_timeout_seconds = 30
             await assessment_service.run_assessment("job-1", _make_request())
 
-        job_manager.fail_job.assert_awaited_once()
-        job_manager.complete_job.assert_not_awaited()
+        job_manager.fail_job.assert_called_once()
+        job_manager.complete_job.assert_not_called()
 
     @pytest.mark.asyncio
     @patch("app.src.services.assessment_service.get_all_modules")
@@ -221,10 +221,10 @@ class TestRunAssessment:
             mock_settings.return_value.module_timeout_seconds = 30
             await assessment_service.run_assessment("job-1", _make_request())
 
-        job_manager.fail_job.assert_awaited_once()
+        job_manager.fail_job.assert_called_once()
         _, error_msg = job_manager.fail_job.call_args[0]
         assert "LLM synthesis failed" in error_msg
-        job_manager.complete_job.assert_not_awaited()
+        job_manager.complete_job.assert_not_called()
 
     @pytest.mark.asyncio
     @patch("app.src.services.assessment_service.get_all_modules")
@@ -242,8 +242,8 @@ class TestRunAssessment:
             mock_settings.return_value.module_timeout_seconds = 30
             await assessment_service.run_assessment("job-1", _make_request())
 
-        job_manager.complete_job.assert_awaited_once()
-        job_manager.fail_job.assert_not_awaited()
+        job_manager.complete_job.assert_called_once()
+        job_manager.fail_job.assert_not_called()
 
 
 class TestRunModule:
@@ -305,7 +305,7 @@ class TestRunModule:
 
         result = await self._run(assessment_service, module, search_context)
 
-        llm_service.parse_module_result.assert_awaited_once()
+        llm_service.parse_module_result.assert_called_once()
         assert result.status == ModuleStatus.COMPLETED
 
     @pytest.mark.asyncio
@@ -316,7 +316,7 @@ class TestRunModule:
 
         result = await self._run(assessment_service, module, search_context)
 
-        llm_service.parse_module_result.assert_not_awaited()
+        llm_service.parse_module_result.assert_not_called()
         assert result.status == ModuleStatus.COMPLETED
         assert result.data == {"direct": True}
 
