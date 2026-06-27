@@ -172,34 +172,6 @@
                   "place_registered":    { "type": "string" },
                   "registration_number": { "type": "string" }
                 }
-              },
-              "appointments": {
-                "type": "object",
-                "properties": {
-                  "total_results": { "type": "integer" },
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "officer_role":         { "type": "string" },
-                        "appointed_on":         { "type": "string", "format": "date" },
-                        "resigned_on":          { "type": "string", "format": "date" },
-                        "country_of_residence": { "type": "string" },
-                        "nationality":          { "type": "string" },
-                        "occupation":           { "type": "string" },
-                        "appointed_to": {
-                          "type": "object",
-                          "properties": {
-                            "company_name":   { "type": "string" },
-                            "company_number": { "type": "string" },
-                            "company_status": { "type": "string" }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
               }
             }
           }

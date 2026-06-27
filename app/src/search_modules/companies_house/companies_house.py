@@ -69,19 +69,6 @@ class CompaniesHouseModule(BaseSearchModule):
                     (self._parse_resp(r) for r in responses),
                 ))
 
-                appt_officers = []
-                for officer in (raw.get("officers") or {}).get("items") or []:
-                    if path := ((officer.get("links") or {}).get("officer") or {}).get("appointments"):
-                        appt_officers.append((officer, path))
-
-                if appt_officers:
-                    appt_responses = await asyncio.gather(
-                        *(client.get(f"{self._BASE_URL}{path}") for _, path in appt_officers),
-                        return_exceptions=True,
-                    )
-                    for (officer, _), appt_resp in zip(appt_officers, appt_responses):
-                        officer["appointments"] = self._parse_resp(appt_resp)
-
                 defs = self.output_schema.get("definitions", {})
                 props = self.output_schema.get("properties", {})
                 raw = {k: self._filter(v, props.get(k, {}), defs) for k, v in raw.items()}
